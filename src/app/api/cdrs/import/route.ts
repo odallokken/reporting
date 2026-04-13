@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       url = buildManagementApiUrl(baseUrl)
     } catch {
       return NextResponse.json({
-        error: 'Invalid Management Node URL. Please enter a valid URL like https://pexip.example.com'
+        error: 'Invalid Management Node URL. Please enter the HTTPS Management Node base URL, for example https://pexip.example.com'
       }, { status: 400 })
     }
 

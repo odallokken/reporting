@@ -81,7 +81,7 @@ export default function SettingsPage() {
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="mt-1 text-xs text-gray-500">
-                Enter the Management Node URL only, for example <span className="font-mono">https://pexip.example.com</span>, not <span className="font-mono">/admin</span> or any other path.
+                Enter the Management Node URL only, for example <span className="font-mono">https://pexip.example.com</span>, without <span className="font-mono">/admin</span> or any other path.
               </p>
             </div>
             <div>
