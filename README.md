@@ -275,6 +275,8 @@ This pulls in conference records that were created before the dashboard was inst
 1. Open the dashboard in your browser.
 2. Go to **Settings** (the gear icon).
 3. Enter your Pexip Management Node URL, admin username, and password.
+   - Use the Management Node base URL only, for example `https://pexip.example.com`
+   - Do **not** include `/admin` or any other path in the URL
 4. Click **Import** to pull in the historical records.
 
 You can use both options together — the CDR import for historical data, and the event sink for ongoing live activity.
