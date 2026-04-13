@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { subDays } from 'date-fns'
 
 export async function GET(
-  _request: NextRequest,
+  _request: Request,
   { params }: { params: { id: string } }
 ) {
   try {

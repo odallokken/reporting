@@ -5,7 +5,7 @@ import type { PexipEvent } from '@/lib/types'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as PexipEvent
-    processEvent(body).catch(console.error)
+    processEvent(body).catch(err => console.error('Failed to process Pexip event:', err))
     return NextResponse.json({ status: 'ok' })
   } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
