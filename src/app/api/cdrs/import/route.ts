@@ -26,7 +26,7 @@ function parseDigestChallenge(header: string): Record<string, string> {
   const params: Record<string, string> = {}
   const digestPrefix = 'Digest '
   const raw = header.startsWith(digestPrefix) ? header.slice(digestPrefix.length) : header
-  const regex = /(\w+)=(?:"([^"]*)"|([\w]+))/g
+  const regex = /(\w+)=(?:"([^"]*)"|([\w.+-]+))/g
   let match
   while ((match = regex.exec(raw)) !== null) {
     params[match[1]] = match[2] ?? match[3]
@@ -41,11 +41,13 @@ function buildDigestAuthHeader(
   uri: string,
   challenge: Record<string, string>
 ): string {
-  const { realm, nonce, qop, opaque, algorithm } = challenge
+  const { realm, nonce, qop: rawQop, opaque, algorithm } = challenge
   const algo = (algorithm ?? 'MD5').toUpperCase()
   const cnonce = randomBytes(8).toString('hex')
   // nc is always 1 because we use a fresh nonce per request
   const nc = '00000001'
+  // Select the first qop value when the server offers multiple (e.g. "auth,auth-int")
+  const qop = rawQop?.split(',')[0].trim()
 
   const ha1 = algo === 'MD5-SESS'
     ? md5(`${md5(`${username}:${realm}:${password}`)}:${nonce}:${cnonce}`)
@@ -72,39 +74,56 @@ async function fetchWithDigestAuth(
   username: string,
   password: string
 ): Promise<Response> {
-  // First attempt with Basic auth — some Pexip setups accept it
-  const basicCredentials = Buffer.from(`${username}:${password}`).toString('base64')
+  // Send an unauthenticated request first to obtain the server's auth challenge.
+  // Sending Basic credentials up-front can cause some Pexip nodes to reject the
+  // request without returning a Digest challenge, resulting in an unexplained 401.
   const firstResponse = await fetch(url, {
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Basic ${basicCredentials}`
-    },
-    redirect: 'manual'
+    headers: { Accept: 'application/json' },
+    redirect: 'manual',
+    cache: 'no-store'
   })
 
   if (firstResponse.status !== 401) {
     return firstResponse
   }
 
-  // Check if server requests Digest authentication
+  // Inspect the WWW-Authenticate header to decide which scheme to use
   const wwwAuth = firstResponse.headers.get('www-authenticate') ?? ''
-  if (!wwwAuth.toLowerCase().startsWith('digest')) {
-    return firstResponse
+
+  if (wwwAuth.toLowerCase().includes('digest')) {
+    // Extract the Digest challenge (it may follow other schemes in the header)
+    const digestStart = wwwAuth.toLowerCase().indexOf('digest')
+    const digestChallenge = wwwAuth.slice(digestStart)
+    const challenge = parseDigestChallenge(digestChallenge)
+    const parsedUrl = new URL(url)
+    const uri = parsedUrl.pathname + parsedUrl.search
+    const authHeader = buildDigestAuthHeader(username, password, 'GET', uri, challenge)
+
+    return fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: authHeader
+      },
+      redirect: 'manual',
+      cache: 'no-store'
+    })
   }
 
-  // Retry with Digest authentication
-  const challenge = parseDigestChallenge(wwwAuth)
-  const parsedUrl = new URL(url)
-  const uri = parsedUrl.pathname + parsedUrl.search
-  const authHeader = buildDigestAuthHeader(username, password, 'GET', uri, challenge)
+  if (wwwAuth.toLowerCase().includes('basic')) {
+    // Fall back to Basic authentication when the server requests it
+    const basicCredentials = Buffer.from(`${username}:${password}`).toString('base64')
+    return fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Basic ${basicCredentials}`
+      },
+      redirect: 'manual',
+      cache: 'no-store'
+    })
+  }
 
-  return fetch(url, {
-    headers: {
-      Accept: 'application/json',
-      Authorization: authHeader
-    },
-    redirect: 'manual'
-  })
+  // No recognized authentication scheme; return the original 401
+  return firstResponse
 }
 
 function buildManagementApiUrl(baseUrl: string) {
