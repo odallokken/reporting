@@ -21,26 +21,27 @@ interface PexipCDRParticipant {
   disconnect_time?: string
 }
 
-function buildBasicAuthHeaders(username: string, password: string): Record<string, string> {
-  const credentials = Buffer.from(`${username}:${password}`).toString('base64')
-  return {
-    Accept: 'application/json',
-    Authorization: `Basic ${credentials}`
-  }
-}
-
 async function fetchWithBasicAuth(
   url: string,
   username: string,
   password: string
 ): Promise<Response> {
   // Pexip uses HTTP Basic Authentication over HTTPS (per docs.pexip.com).
-  // Send credentials preemptively — no unauthenticated round-trip needed.
+  // Match the behaviour shown in the Pexip API docs Python examples:
+  //   requests.get(url, auth=(user, pass), verify=True)
+  // This means: preemptive Basic auth, follow redirects, default Accept.
   await log('info', `Fetching ${url} with Basic auth`, { source: LOG_SOURCE })
 
+  const credentials = Buffer.from(`${username}:${password}`).toString('base64')
+
   const response = await fetch(url, {
-    headers: buildBasicAuthHeaders(username, password),
-    redirect: 'manual',
+    method: 'GET',
+    headers: {
+      Authorization: `Basic ${credentials}`
+    },
+    // No redirect: 'manual' — follow redirects like Python requests does.
+    // No explicit Accept header — let the default (*/*) be used, matching
+    // the Python requests library behaviour shown in the Pexip docs examples.
     cache: 'no-store'
   })
 
@@ -50,8 +51,8 @@ async function fetchWithBasicAuth(
     {
       source: LOG_SOURCE,
       details: response.ok
-        ? 'Request successful'
-        : `Status: ${response.status} ${response.statusText}`
+        ? `Request successful (final URL: ${response.url})`
+        : `Status: ${response.status} ${response.statusText}\nFinal URL: ${response.url}`
     }
   )
 
@@ -60,6 +61,11 @@ async function fetchWithBasicAuth(
 
 function buildManagementApiUrl(baseUrl: string) {
   const parsedUrl = new URL(baseUrl)
+  // Warn early if the user accidentally included /admin or another path.
+  // The Pexip docs state: enter the base URL only (e.g. https://pexip.example.com).
+  if (parsedUrl.pathname !== '/' && parsedUrl.pathname !== '') {
+    throw new Error(`URL should not contain a path (got "${parsedUrl.pathname}"). Use the base Management Node URL only, e.g. https://pexip.example.com`)
+  }
   return new URL('/api/admin/history/v1/conference/', parsedUrl.origin).toString()
 }
 
@@ -95,23 +101,19 @@ export async function POST(request: NextRequest) {
       }, { status: 502 })
     }
 
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get('location')
-      await log('warn', `Pexip redirected request (HTTP ${response.status})`, { source: LOG_SOURCE, details: `Location: ${location ?? 'N/A'}` })
-      return NextResponse.json({
-        error: location
-          ? `Pexip redirected the request to ${location}. Use the direct Management Node URL without /admin or any other path.`
-          : 'Pexip redirected the request. Use the direct Management Node URL without /admin or any other path.'
-      }, { status: 502 })
-    }
-
     if (!response.ok) {
       let guidance = ''
       let details = `HTTP ${response.status} ${response.statusText}`
 
       if (response.status === 401 || response.status === 403) {
         guidance = ' Check that you are using the correct username and password for a Pexip Management API account.'
-        details += `\nWWW-Authenticate: ${response.headers.get('www-authenticate') ?? 'N/A'}`
+        const wwwAuth = response.headers.get('www-authenticate') ?? 'N/A'
+        details += `\nWWW-Authenticate: ${wwwAuth}`
+        // If Bearer is listed in the challenge, the server has OAuth2 configured.
+        // Basic auth might be disabled — mention this to help users troubleshoot.
+        if (wwwAuth.includes('Bearer')) {
+          guidance += ' If your Management Node has OAuth2 enabled, ensure that "Disable Basic authentication" is NOT selected under Administrator Authentication settings.'
+        }
         try {
           const errorBody = await response.text()
           if (errorBody) details += `\nResponse body: ${errorBody.slice(0, 500)}`
