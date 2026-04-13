@@ -35,7 +35,9 @@ export async function POST(request: NextRequest) {
     try {
       url = buildManagementApiUrl(baseUrl)
     } catch {
-      return NextResponse.json({ error: 'Invalid Management Node URL' }, { status: 400 })
+      return NextResponse.json({
+        error: 'Invalid Management Node URL. Please enter a valid URL like https://pexip.example.com'
+      }, { status: 400 })
     }
 
     const credentials = Buffer.from(`${username}:${password}`).toString('base64')
