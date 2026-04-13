@@ -56,14 +56,14 @@ export default function RealtimePage() {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-sm font-medium text-gray-700">{events.length} recent events</h2>
+          <h2 className="text-sm font-medium text-gray-700">{events.length} active participant{events.length !== 1 ? 's' : ''}</h2>
         </div>
         {loading ? (
           <div className="px-6 py-12 text-center text-gray-500">Loading...</div>
         ) : (
           <div className="divide-y divide-gray-100">
             {events.length === 0 ? (
-              <p className="px-6 py-12 text-center text-gray-500">No recent events</p>
+              <p className="px-6 py-12 text-center text-gray-500">No active conferences</p>
             ) : (
               events.map(event => (
                 <div key={event.id} className="px-6 py-4 flex items-center gap-4">

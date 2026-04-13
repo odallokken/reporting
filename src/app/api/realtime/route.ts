@@ -4,6 +4,10 @@ import { prisma } from '@/lib/prisma'
 export async function GET() {
   try {
     const events = await prisma.participant.findMany({
+      where: {
+        leaveTime: null,
+        conference: { endTime: null }
+      },
       take: 100,
       orderBy: { joinTime: 'desc' },
       include: {
