@@ -274,9 +274,7 @@ This pulls in conference records that were created before the dashboard was inst
 
 1. Open the dashboard in your browser.
 2. Go to **Settings** (the gear icon).
-3. Enter your Pexip Management Node URL and choose authentication method:
-   - **Basic**: administrator username and password
-   - **OAuth2**: API **Client ID** and **Private Key** (from **Users & Devices → OAuth2 Clients**)
+3. Enter your Pexip Management Node URL, administrator username, and password.
     - Use the Management Node base URL only, for example `https://pexip.example.com`
     - Do **not** include `/admin` or any other path in the URL
 4. Click **Save credentials** so the values are remembered in your browser.
