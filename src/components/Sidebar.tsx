@@ -1,12 +1,13 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, Activity, Settings } from 'lucide-react'
+import { LayoutDashboard, Video, Activity, Settings, ScrollText } from 'lucide-react'
 
 const links = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/vmrs', label: 'VMRs', icon: Video },
   { href: '/realtime', label: 'Real-time', icon: Activity },
+  { href: '/logs', label: 'Logs', icon: ScrollText },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
