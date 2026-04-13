@@ -26,8 +26,11 @@ async function processEvent(data: PexipEvent) {
       await prisma.conference.create({
         data: { vmrId: vmr.id, startTime: new Date(timestamp), callId: call_id ?? null }
       })
-    } catch {
-      // Conference may already exist
+    } catch (err) {
+      // Duplicate key: conference already exists for this callId, safe to ignore
+      if (!(err instanceof Error && err.message.includes('Unique constraint'))) {
+        console.error('Unexpected error creating conference:', err)
+      }
     }
   } else if (event === 'conference_ended') {
     if (call_id) {
@@ -43,7 +46,11 @@ async function processEvent(data: PexipEvent) {
         conf = await prisma.conference.create({
           data: { vmrId: vmr.id, startTime: new Date(timestamp), callId: call_id ?? null }
         })
-      } catch {
+      } catch (err) {
+        // Duplicate key: conference already exists, fetch it
+        if (!(err instanceof Error && err.message.includes('Unique constraint'))) {
+          console.error('Unexpected error creating conference for participant:', err)
+        }
         if (call_id) {
           conf = await prisma.conference.findUnique({ where: { callId: call_id } })
         }

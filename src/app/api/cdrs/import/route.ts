@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
           }
         }
         imported++
-      } catch {
+      } catch (err) {
+        console.error('Failed to import conference:', conf.call_id ?? conf.name, err)
         skipped++
       }
     }
