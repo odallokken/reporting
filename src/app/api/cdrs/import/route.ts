@@ -46,10 +46,11 @@ export async function POST(request: NextRequest) {
     for (const conf of conferences) {
       try {
         const vmrName = conf.name ?? 'Unknown'
+        const startTime = conf.start_time ? new Date(conf.start_time) : null
         const vmr = await prisma.vMR.upsert({
           where: { name: vmrName },
-          update: { lastUsedAt: conf.start_time ? new Date(conf.start_time) : undefined },
-          create: { name: vmrName, lastUsedAt: conf.start_time ? new Date(conf.start_time) : null }
+          update: startTime ? { lastUsedAt: startTime } : {},
+          create: { name: vmrName, lastUsedAt: startTime }
         })
 
         const conference = await prisma.conference.create({

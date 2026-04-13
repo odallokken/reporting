@@ -11,12 +11,14 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') ?? '1')
     const limit = parseInt(searchParams.get('limit') ?? '20')
 
-    const where: Prisma.ConferenceWhereInput = {}
-    if (vmrId) where.vmrId = parseInt(vmrId)
-    if (from || to) {
-      where.startTime = {}
-      if (from) where.startTime.gte = new Date(from)
-      if (to) where.startTime.lte = new Date(to)
+    const where: Prisma.ConferenceWhereInput = {
+      ...(vmrId ? { vmrId: parseInt(vmrId) } : {}),
+      ...(from || to ? {
+        startTime: {
+          ...(from ? { gte: new Date(from) } : {}),
+          ...(to ? { lte: new Date(to) } : {})
+        }
+      } : {})
     }
 
     const [conferences, total] = await Promise.all([
