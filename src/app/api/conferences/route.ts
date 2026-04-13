@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
@@ -10,12 +11,12 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') ?? '1')
     const limit = parseInt(searchParams.get('limit') ?? '20')
 
-    const where: Record<string, unknown> = {}
+    const where: Prisma.ConferenceWhereInput = {}
     if (vmrId) where.vmrId = parseInt(vmrId)
     if (from || to) {
       where.startTime = {}
-      if (from) (where.startTime as Record<string, Date>).gte = new Date(from)
-      if (to) (where.startTime as Record<string, Date>).lte = new Date(to)
+      if (from) where.startTime.gte = new Date(from)
+      if (to) where.startTime.lte = new Date(to)
     }
 
     const [conferences, total] = await Promise.all([
