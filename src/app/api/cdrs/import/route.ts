@@ -148,8 +148,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Pexip API returned ${response.status}.${guidance}` }, { status: 502 })
     }
 
-    const apiData = await response.json() as { objects?: PexipCDRConference[] }
-    const conferences: PexipCDRConference[] = apiData.objects ?? []
+    // Fetch all pages — the Pexip API paginates results via meta.next
+    const conferences: PexipCDRConference[] = []
+    let nextUrl: string | null = url
+
+    while (nextUrl) {
+      const pageResponse = nextUrl === url
+        ? response
+        : await fetchWithDigestAuth(nextUrl, username, password)
+
+      if (!pageResponse.ok) break
+
+      const pageData = await pageResponse.json() as {
+        meta?: { next?: string | null }
+        objects?: PexipCDRConference[]
+      }
+
+      if (pageData.objects) {
+        conferences.push(...pageData.objects)
+      }
+
+      const nextPath = pageData.meta?.next
+      if (nextPath) {
+        const base = new URL(url)
+        nextUrl = new URL(nextPath, base.origin).toString()
+      } else {
+        nextUrl = null
+      }
+    }
 
     let imported = 0
     let skipped = 0
