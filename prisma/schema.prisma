@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model VMR {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  lastUsedAt  DateTime?
+  createdAt   DateTime     @default(now())
+  conferences Conference[]
+}
+
+model Conference {
+  id           Int           @id @default(autoincrement())
+  vmrId        Int
+  vmr          VMR           @relation(fields: [vmrId], references: [id])
+  startTime    DateTime
+  endTime      DateTime?
+  callId       String?       @unique
+  participants Participant[]
+  createdAt    DateTime      @default(now())
+}
+
+model Participant {
+  id           Int        @id @default(autoincrement())
+  conferenceId Int
+  conference   Conference @relation(fields: [conferenceId], references: [id])
+  name         String?
+  identity     String?
+  joinTime     DateTime
+  leaveTime    DateTime?
+  callUuid     String?    @unique
+  createdAt    DateTime   @default(now())
+}

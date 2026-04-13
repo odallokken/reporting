@@ -1,0 +1,49 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { subDays, format } from 'date-fns'
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const fmt = searchParams.get('format') ?? 'csv'
+    const staleThreshold = subDays(new Date(), 30)
+
+    const vmrs = await prisma.vMR.findMany({
+      orderBy: { lastUsedAt: 'desc' },
+      include: {
+        _count: { select: { conferences: true } },
+        conferences: {
+          select: { _count: { select: { participants: true } } }
+        }
+      }
+    })
+
+    const data = vmrs.map(vmr => ({
+      id: vmr.id,
+      name: vmr.name,
+      lastUsedAt: vmr.lastUsedAt ? format(new Date(vmr.lastUsedAt), 'yyyy-MM-dd HH:mm:ss') : '',
+      createdAt: format(new Date(vmr.createdAt), 'yyyy-MM-dd HH:mm:ss'),
+      totalCalls: vmr._count.conferences,
+      totalParticipants: vmr.conferences.reduce((sum, c) => sum + c._count.participants, 0),
+      isStale: !vmr.lastUsedAt || vmr.lastUsedAt < staleThreshold ? 'Yes' : 'No'
+    }))
+
+    if (fmt === 'json') {
+      return NextResponse.json(data)
+    }
+
+    const headers = ['ID', 'Name', 'Last Used', 'Created', 'Total Calls', 'Total Participants', 'Stale']
+    const rows = data.map(r => [r.id, `"${r.name}"`, r.lastUsedAt, r.createdAt, r.totalCalls, r.totalParticipants, r.isStale].join(','))
+    const csv = [headers.join(','), ...rows].join('\n')
+
+    return new NextResponse(csv, {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': 'attachment; filename="vmrs.csv"'
+      }
+    })
+  } catch (error) {
+    console.error('Export error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
