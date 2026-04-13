@@ -17,6 +17,11 @@ interface PexipCDRParticipant {
   disconnect_time?: string
 }
 
+function buildManagementApiUrl(baseUrl: string) {
+  const parsedUrl = new URL(baseUrl)
+  return new URL('/api/admin/history/v1/conference/', parsedUrl.origin).toString()
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as { baseUrl: string; username: string; password: string }
@@ -26,15 +31,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const url = `${baseUrl.replace(/\/$/, '')}/api/admin/history/v1/conference/`
+    let url: string
+    try {
+      url = buildManagementApiUrl(baseUrl)
+    } catch {
+      return NextResponse.json({
+        error: 'Invalid Management Node URL. Please enter the HTTPS Management Node base URL, for example https://pexip.example.com'
+      }, { status: 400 })
+    }
+
     const credentials = Buffer.from(`${username}:${password}`).toString('base64')
 
     const response = await fetch(url, {
-      headers: { Authorization: `Basic ${credentials}` }
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Basic ${credentials}`
+      },
+      redirect: 'manual'
     })
 
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location')
+      return NextResponse.json({
+        error: location
+          ? `Pexip redirected the request to ${location}. Use the direct Management Node URL without /admin or any other path.`
+          : 'Pexip redirected the request. Use the direct Management Node URL without /admin or any other path.'
+      }, { status: 502 })
+    }
+
     if (!response.ok) {
-      return NextResponse.json({ error: `Pexip API returned ${response.status}` }, { status: 502 })
+      const guidance = response.status === 401 || response.status === 403
+        ? ' Check that you are using the direct Management Node URL and a Management API account.'
+        : ''
+      return NextResponse.json({ error: `Pexip API returned ${response.status}.${guidance}` }, { status: 502 })
     }
 
     const apiData = await response.json() as { objects?: PexipCDRConference[] }
