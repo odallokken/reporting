@@ -23,20 +23,23 @@ export default function LogsPage() {
   const [page, setPage] = useState(1)
   const [levelFilter, setLevelFilter] = useState('')
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const pageSize = 50
 
   const fetchLogs = useCallback(async () => {
     setLoading(true)
+    setFetchError(null)
     try {
       const params = new URLSearchParams({ page: String(page) })
       if (levelFilter) params.set('level', levelFilter)
       const res = await fetch(`/api/logs?${params}`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       setLogs(data.logs)
       setTotal(data.total)
-    } catch {
-      // Silently fail — the user can retry
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : 'Failed to load logs')
     } finally {
       setLoading(false)
     }
@@ -83,7 +86,9 @@ export default function LogsPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {logs.length === 0 && !loading ? (
+        {fetchError ? (
+          <div className="p-12 text-center text-red-500 text-sm">Failed to load logs: {fetchError}</div>
+        ) : logs.length === 0 && !loading ? (
           <div className="p-12 text-center text-gray-400 text-sm">No log entries found</div>
         ) : (
           <div className="divide-y divide-gray-100">
