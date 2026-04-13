@@ -21,60 +21,67 @@ interface PexipCDRParticipant {
   disconnect_time?: string
 }
 
+import * as https from 'https'
+
 async function fetchWithBasicAuth(
   url: string,
   username: string,
   password: string
 ): Promise<Response> {
-  await log('info', `Fetching ${url} with Basic auth`, {
+  await log('info', `Fetching ${url} with native https and Basic auth`, {
     source: LOG_SOURCE,
   })
 
   const credentials = Buffer.from(`${username}:${password}`, 'utf8').toString('base64')
-  
-  const headers = new Headers({
-    Authorization: `Basic ${credentials}`,
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
-    'Cache-Control': 'no-cache, no-store, must-revalidate'
-  })
 
-  let response = await fetch(url, {
-    method: 'GET',
-    headers,
-    cache: 'no-store',
-    redirect: 'manual' // Prevent fetch from natively stripping Authorization on cross-origin redirects
-  })
-
-  // Manually follow redirects up to 5 times to ensure the Authorization header is kept intact
-  let redirectCount = 0
-  const maxRedirects = 5
-  
-  while (
-    [301, 302, 303, 307, 308].includes(response.status) && 
-    response.headers.has('location') && 
-    redirectCount < maxRedirects
-  ) {
-    redirectCount++
-    const redirectUrl = new URL(response.headers.get('location')!, url).toString()
-    await log('info', `Following redirect to ${redirectUrl}`, { source: LOG_SOURCE })
-    
-    // Create new fetch with same headers
-    response = await fetch(redirectUrl, {
+  return new Promise((resolve, reject) => {
+    const req = https.request(url, {
       method: 'GET',
-      headers,
-      cache: 'no-store',
-      redirect: 'manual'
-    })
-  }
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      }
+    }, (res) => {
+      // If we encounter a redirect, natively handle it (up to 3 times)
+      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        const redirectUrl = new URL(res.headers.location, url).toString()
+        resolve(fetchWithBasicAuth(redirectUrl, username, password))
+        return
+      }
 
-  await log(response.ok ? 'info' : 'error', `Response: HTTP ${response.status}`, {
-    source: LOG_SOURCE,
-    details: response.ok
-      ? `Request successful (final URL: ${response.url})`
-      : `Status: ${response.status} ${response.statusText}\nFinal URL: ${response.url}`
+      const chunks: Buffer[] = []
+      res.on('data', d => chunks.push(d))
+      res.on('end', async () => {
+        const bodyBuffer = Buffer.concat(chunks)
+        const textStr = bodyBuffer.toString('utf8')
+        
+        const isOk = res.statusCode! >= 200 && res.statusCode! < 300
+        
+        await log(isOk ? 'info' : 'error', `Response: HTTP ${res.statusCode}`, {
+          source: LOG_SOURCE,
+          details: isOk
+            ? `Request successful (final URL: ${url})`
+            : `Status: ${res.statusCode} ${res.statusMessage}\nFinal URL: ${url}`
+        })
+
+        // Return a polyfilled fetch-like Response object
+        resolve({
+          ok: isOk,
+          status: res.statusCode!,
+          statusText: res.statusMessage || '',
+          url: url,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          headers: new Headers(res.headers as any),
+          text: async () => textStr,
+          json: async () => JSON.parse(textStr)
+        } as unknown as Response)
+      })
+    })
+    req.on('error', reject)
+    req.end()
   })
-  return response
 }
 
 function buildManagementApiUrl(baseUrl: string) {
@@ -83,7 +90,6 @@ function buildManagementApiUrl(baseUrl: string) {
     throw new Error('URL must use HTTPS')
   }
   // Warn early if the user accidentally included /admin or another path.
-  // The Pexip docs state: enter the base URL only (e.g. https://pexip.example.com).
   if (parsedUrl.pathname !== '/' && parsedUrl.pathname !== '') {
     throw new Error(`URL should not contain a path (got "${parsedUrl.pathname}"). Use the base Management Node URL only, e.g. https://pexip.example.com`)
   }
