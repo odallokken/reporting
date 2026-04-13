@@ -20,19 +20,28 @@ A full-stack analytics and reporting dashboard for **Pexip Infinity** video conf
 - 📤 **CSV Export** — Download full VMR list with stats as CSV
 - 🔔 **Event Sink Webhook** — Receive live events from Pexip Infinity (`POST /api/events`)
 
+## Prerequisites (local development)
+
+- **[Git](https://git-scm.com/downloads)**
+- **[Node.js](https://nodejs.org/) 18+** (includes `npm`)
+
 ## Setup
 
 ```bash
-# 1. Install dependencies
+# 1. Clone the repository
+git clone https://github.com/odallokken/reporting.git
+cd reporting
+
+# 2. Install dependencies
 npm install
 
-# 2. Run database migrations
+# 3. Run database migrations
 npx prisma migrate dev --name init
 
-# 3. Seed with sample data (optional)
+# 4. Seed with sample data (optional)
 npx prisma db seed
 
-# 4. Start the development server
+# 5. Start the development server
 npm run dev
 ```
 
@@ -74,10 +83,14 @@ The project includes a Docker Compose setup that runs the Next.js app behind a *
 ### Quick start
 
 ```bash
-# 1. Set your public domain
+# 1. Clone the repository
+git clone https://github.com/odallokken/reporting.git
+cd reporting
+
+# 2. Set your public domain
 export DOMAIN=reports.example.com
 
-# 2. Build and start
+# 3. Build and start
 docker compose up -d --build
 ```
 
@@ -90,6 +103,7 @@ Caddy will:
 
 ### Requirements
 
+- **[Git](https://git-scm.com/downloads)** installed
 - A public DNS record pointing `DOMAIN` to the server's IP address
 - Ports **80** and **443** open (required for ACME HTTP-01 challenge)
 - Docker and Docker Compose installed
