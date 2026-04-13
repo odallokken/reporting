@@ -30,17 +30,43 @@ async function fetchWithBasicAuth(
     source: LOG_SOURCE,
   })
 
-  // Explicitly use utf8 encoding for credentials to support special characters
   const credentials = Buffer.from(`${username}:${password}`, 'utf8').toString('base64')
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
-    cache: 'no-store'
+  
+  const headers = new Headers({
+    Authorization: `Basic ${credentials}`,
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate'
   })
+
+  let response = await fetch(url, {
+    method: 'GET',
+    headers,
+    cache: 'no-store',
+    redirect: 'manual' // Prevent fetch from natively stripping Authorization on cross-origin redirects
+  })
+
+  // Manually follow redirects up to 5 times to ensure the Authorization header is kept intact
+  let redirectCount = 0
+  const maxRedirects = 5
+  
+  while (
+    [301, 302, 303, 307, 308].includes(response.status) && 
+    response.headers.has('location') && 
+    redirectCount < maxRedirects
+  ) {
+    redirectCount++
+    const redirectUrl = new URL(response.headers.get('location')!, url).toString()
+    await log('info', `Following redirect to ${redirectUrl}`, { source: LOG_SOURCE })
+    
+    // Create new fetch with same headers
+    response = await fetch(redirectUrl, {
+      method: 'GET',
+      headers,
+      cache: 'no-store',
+      redirect: 'manual'
+    })
+  }
 
   await log(response.ok ? 'info' : 'error', `Response: HTTP ${response.status}`, {
     source: LOG_SOURCE,
