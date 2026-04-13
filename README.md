@@ -111,7 +111,13 @@ You should now be inside a folder called `reporting` that contains all the proje
 
 ### Step 5 — Set Your Domain Name
 
-Open the `.env` file in the project folder and set your domain name. Replace `localhost` with your actual domain:
+Create your `.env` file by copying the example template:
+
+```bash
+cp .env.example .env
+```
+
+Then open it and set your domain name:
 
 ```bash
 nano .env
@@ -218,6 +224,26 @@ Look for errors related to TLS or ACME. Common causes:
 - Ports 80/443 blocked by a firewall
 - Let's Encrypt rate limits (wait an hour and try again)
 
+### 6. Git Pull Fails With "Your local changes to .env would be overwritten"
+
+If you see this error when running `git pull`:
+
+```
+error: Your local changes to the following files would be overwritten by merge:
+        .env
+Please commit your changes or stash them before you merge.
+```
+
+This happens because `.env` used to be tracked by git but has since been removed. Your local copy still has the old tracked version with your changes. To fix it, stash your changes, pull, and then restore:
+
+```bash
+git stash
+git pull origin main
+git stash pop
+```
+
+After this, your `.env` file will be untracked and ignored by git, so this error will not happen again on future pulls.
+
 ---
 
 ## Connecting to Pexip Infinity
@@ -288,13 +314,13 @@ docker compose restart
 
 ```bash
 cd reporting
-git stash        # save your .env changes
 git pull
-git stash pop    # restore your .env changes
 docker compose up -d --build
 ```
 
-This downloads the latest code, preserves your `.env` settings, and rebuilds the application.
+This downloads the latest code and rebuilds the application. Your `.env` file is not tracked by git, so it will be preserved automatically.
+
+> **Note:** If you are updating from an older version where `.env` was still tracked by git, the pull may fail with an error about local changes being overwritten. See [Troubleshooting item 6](#6-git-pull-fails-with-your-local-changes-to-env-would-be-overwritten) for the fix.
 
 ---
 
