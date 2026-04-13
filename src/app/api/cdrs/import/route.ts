@@ -30,12 +30,14 @@ async function fetchWithBasicAuth(
     source: LOG_SOURCE,
   })
 
-  const credentials = Buffer.from(`${username}:${password}`).toString('base64')
+  // Explicitly use utf8 encoding for credentials to support special characters
+  const credentials = Buffer.from(`${username}:${password}`, 'utf8').toString('base64')
   const response = await fetch(url, {
     method: 'GET',
     headers: {
       Authorization: `Basic ${credentials}`,
-      Accept: 'application/json'
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
     },
     cache: 'no-store'
   })
@@ -147,7 +149,14 @@ export async function POST(request: NextRequest) {
       }
 
       const nextPath = pageData.meta?.next
-      nextUrl = nextPath ? new URL(nextPath, baseOrigin).toString() : null
+      if (nextPath) {
+        // Enforce baseOrigin to prevent absolute HTTP URLs from reverse proxies breaking the auth headers
+        const parsedNext = new URL(nextPath, baseOrigin)
+        const enforcedNext = new URL(parsedNext.pathname + parsedNext.search, baseOrigin)
+        nextUrl = enforcedNext.toString()
+      } else {
+        nextUrl = null
+      }
     }
 
     await log('info', `Fetched ${conferences.length} conferences from Pexip API`, { source: LOG_SOURCE })
@@ -174,8 +183,6 @@ export async function POST(request: NextRequest) {
           }
         })
 
-        // Fetch participants for this conference from the participant history endpoint.
-        // The conference object only contains participant URI strings, not inline data.
         if (conf.id) {
           const participantUrl = new URL(`/api/admin/history/v1/participant/`, baseOrigin)
           participantUrl.searchParams.set('conference', String(conf.id))
@@ -209,7 +216,14 @@ export async function POST(request: NextRequest) {
               }
 
               const nextPartPath = partData.meta?.next
-              partNextUrl = nextPartPath ? new URL(nextPartPath, baseOrigin).toString() : null
+              if (nextPartPath) {
+                // Enforce baseOrigin to prevent absolute HTTP URLs from reverse proxies
+                const parsedNextPart = new URL(nextPartPath, baseOrigin)
+                const enforcedNextPart = new URL(parsedNextPart.pathname + parsedNextPart.search, baseOrigin)
+                partNextUrl = enforcedNextPart.toString()
+              } else {
+                partNextUrl = null
+              }
             } catch (partErr) {
               const msg = partErr instanceof Error ? partErr.message : String(partErr)
               await log('warn', `Error fetching participants for conference ${conf.id}`, { source: LOG_SOURCE, details: msg })
