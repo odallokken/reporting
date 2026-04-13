@@ -3,7 +3,7 @@ services:
     build: .
     restart: unless-stopped
     environment:
-      - DATABASE_URL=file:./data/reporting.db
+      - DATABASE_URL=file:/app/prisma/data/reporting.db
     volumes:
       - app-data:/app/prisma/data
     expose:
