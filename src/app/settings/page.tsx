@@ -1,6 +1,12 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Copy, CheckCircle } from 'lucide-react'
+
+const SETTINGS_STORAGE_KEY = 'pexip-basic-import-settings-v1'
+type BrowserCredentialStore = {
+  get: (options?: unknown) => Promise<{ id?: string; password?: string } | null>
+}
+type BrowserPasswordCredentialConstructor = new (data: { id: string; password: string; name?: string }) => Credential
 
 export default function SettingsPage() {
   const [baseUrl, setBaseUrl] = useState('')
@@ -9,13 +15,77 @@ export default function SettingsPage() {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ imported?: number; skipped?: number; error?: string } | null>(null)
   const [copied, setCopied] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saved-partial' | 'error' | null>(null)
 
   const eventSinkUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/api/events`
     : '/api/events'
 
+  const hasImportFields = Boolean(username && password)
+  const saveStatusStyles: Record<'saved' | 'saved-partial' | 'error', string> = {
+    saved: 'bg-green-50 text-green-700',
+    'saved-partial': 'bg-yellow-50 text-yellow-800',
+    error: 'bg-red-50 text-red-700'
+  }
+
+  useEffect(() => {
+    const loadSaved = async () => {
+      try {
+        const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY)
+        let savedUsername = ''
+        if (raw) {
+          const saved = JSON.parse(raw) as { baseUrl?: string; username?: string }
+          if (saved.baseUrl) setBaseUrl(saved.baseUrl)
+          if (saved.username) {
+            savedUsername = saved.username
+            setUsername(saved.username)
+          }
+        }
+
+        if ('credentials' in navigator) {
+          const credential = await (navigator.credentials as BrowserCredentialStore).get({
+            password: true,
+            mediation: 'optional'
+          })
+          if (credential?.id && !savedUsername) setUsername(credential.id)
+          if (credential?.password) setPassword(credential.password)
+        }
+      } catch (error) {
+        console.warn('Could not load saved credentials:', error)
+      }
+    }
+
+    loadSaved()
+  }, [])
+
+  const handleSave = async () => {
+    try {
+      window.localStorage.setItem(
+        SETTINGS_STORAGE_KEY,
+        JSON.stringify({ baseUrl, username })
+      )
+
+      const PasswordCredentialCtor = (window as { PasswordCredential?: BrowserPasswordCredentialConstructor }).PasswordCredential
+      if ('credentials' in navigator && PasswordCredentialCtor && password) {
+        const credential = new PasswordCredentialCtor({
+          id: username,
+          password,
+          name: 'Pexip Management API'
+        })
+        await navigator.credentials.store(credential)
+        setSaveStatus('saved')
+      } else {
+        setSaveStatus('saved-partial')
+      }
+    } catch (error) {
+      console.warn('Could not save credentials:', error)
+      setSaveStatus('error')
+    }
+  }
+
   const handleImport = async () => {
     setImporting(true)
+    setSaveStatus(null)
     setImportResult(null)
     try {
       const res = await fetch('/api/cdrs/import', {
@@ -91,6 +161,7 @@ export default function SettingsPage() {
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 placeholder="admin"
+                autoComplete="username"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -101,17 +172,35 @@ export default function SettingsPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
+                autoComplete="current-password"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <button
-              onClick={handleImport}
-              disabled={importing || !baseUrl || !username || !password}
-              className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {importing ? 'Importing...' : 'Import CDRs'}
-            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={handleSave}
+                disabled={!baseUrl || !username}
+                className="w-full py-2 px-4 border border-gray-300 text-gray-800 rounded-lg font-medium text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Save credentials
+              </button>
+              <button
+                onClick={handleImport}
+                disabled={importing || !baseUrl || !hasImportFields}
+                className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {importing ? 'Importing...' : 'Import CDRs'}
+              </button>
+            </div>
           </div>
+
+          {saveStatus && (
+            <div className={`mt-4 p-4 rounded-lg text-sm ${saveStatusStyles[saveStatus]}`}>
+              {saveStatus === 'saved' && 'Saved URL/username and password in your browser credential store.'}
+              {saveStatus === 'saved-partial' && 'Saved URL/username. Browser secure password storage is not available here.'}
+              {saveStatus === 'error' && 'Could not save settings in this browser.'}
+            </div>
+          )}
 
           {importResult && (
             <div className={`mt-4 p-4 rounded-lg text-sm ${importResult.error ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>

@@ -26,41 +26,34 @@ async function fetchWithBasicAuth(
   username: string,
   password: string
 ): Promise<Response> {
-  // Pexip uses HTTP Basic Authentication over HTTPS (per docs.pexip.com).
-  // Match the behaviour shown in the Pexip API docs Python examples:
-  //   requests.get(url, auth=(user, pass), verify=True)
-  // This means: preemptive Basic auth, follow redirects, default Accept.
-  await log('info', `Fetching ${url} with Basic auth`, { source: LOG_SOURCE })
+  await log('info', `Fetching ${url} with Basic auth`, {
+    source: LOG_SOURCE,
+  })
 
   const credentials = Buffer.from(`${username}:${password}`).toString('base64')
-
   const response = await fetch(url, {
     method: 'GET',
     headers: {
-      Authorization: `Basic ${credentials}`
+      Authorization: `Basic ${credentials}`,
+      Accept: 'application/json'
     },
-    // No redirect: 'manual' — follow redirects like Python requests does.
-    // No explicit Accept header — let the default (*/*) be used, matching
-    // the Python requests library behaviour shown in the Pexip docs examples.
     cache: 'no-store'
   })
 
-  await log(
-    response.ok ? 'info' : 'error',
-    `Response: HTTP ${response.status}`,
-    {
-      source: LOG_SOURCE,
-      details: response.ok
-        ? `Request successful (final URL: ${response.url})`
-        : `Status: ${response.status} ${response.statusText}\nFinal URL: ${response.url}`
-    }
-  )
-
+  await log(response.ok ? 'info' : 'error', `Response: HTTP ${response.status}`, {
+    source: LOG_SOURCE,
+    details: response.ok
+      ? `Request successful (final URL: ${response.url})`
+      : `Status: ${response.status} ${response.statusText}\nFinal URL: ${response.url}`
+  })
   return response
 }
 
 function buildManagementApiUrl(baseUrl: string) {
   const parsedUrl = new URL(baseUrl)
+  if (parsedUrl.protocol !== 'https:') {
+    throw new Error('URL must use HTTPS')
+  }
   // Warn early if the user accidentally included /admin or another path.
   // The Pexip docs state: enter the base URL only (e.g. https://pexip.example.com).
   if (parsedUrl.pathname !== '/' && parsedUrl.pathname !== '') {
@@ -72,7 +65,9 @@ function buildManagementApiUrl(baseUrl: string) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as { baseUrl: string; username: string; password: string }
-    const { baseUrl, username, password } = body
+    const baseUrl = body.baseUrl?.trim()
+    const username = body.username?.trim()
+    const password = body.password ?? ''
 
     if (!baseUrl || !username || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -88,7 +83,11 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    await log('info', `Starting CDR import from ${url}`, { source: LOG_SOURCE, details: `User: ${username}` })
+    const baseOrigin = new URL(url).origin
+    await log('info', `Starting CDR import from ${url}`, {
+      source: LOG_SOURCE,
+      details: `Auth: Basic user ${username}`
+    })
 
     let response: Response
     try {
@@ -109,8 +108,6 @@ export async function POST(request: NextRequest) {
         guidance = ' Check that you are using the correct username and password for a Pexip Management API account.'
         const wwwAuth = response.headers.get('www-authenticate') ?? 'N/A'
         details += `\nWWW-Authenticate: ${wwwAuth}`
-        // If Bearer is listed in the challenge, the server has OAuth2 configured.
-        // Basic auth might be disabled — mention this to help users troubleshoot.
         if (wwwAuth.includes('Bearer')) {
           guidance += ' If your Management Node has OAuth2 enabled, ensure that "Disable Basic authentication" is NOT selected under Administrator Authentication settings.'
         }
@@ -127,7 +124,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch all conference pages — the Pexip API paginates results via meta.next
-    const baseOrigin = new URL(url).origin
     const conferences: PexipCDRConference[] = []
     let nextUrl: string | null = url
 
