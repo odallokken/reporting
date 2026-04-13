@@ -157,7 +157,10 @@ export async function POST(request: NextRequest) {
         ? response
         : await fetchWithDigestAuth(nextUrl, username, password)
 
-      if (!pageResponse.ok) break
+      if (!pageResponse.ok) {
+        console.warn(`Pexip API returned ${pageResponse.status} while fetching page: ${nextUrl}`)
+        break
+      }
 
       const pageData = await pageResponse.json() as {
         meta?: { next?: string | null }
