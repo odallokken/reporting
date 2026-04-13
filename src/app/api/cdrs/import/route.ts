@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash, randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { log } from '@/lib/logger'
+
+const LOG_SOURCE = 'cdr-import'
 
 interface PexipCDRConference {
   id?: number
@@ -73,33 +76,46 @@ async function fetchWithDigestAuth(
   url: string,
   username: string,
   password: string
-): Promise<Response> {
+): Promise<{ response: Response; authScheme: string }> {
   // Send an unauthenticated request first to obtain the server's auth challenge.
   // Sending Basic credentials up-front can cause some Pexip nodes to reject the
   // request without returning a Digest challenge, resulting in an unexplained 401.
+  await log('info', `Sending initial unauthenticated request to ${url}`, { source: LOG_SOURCE })
+
   const firstResponse = await fetch(url, {
     headers: { Accept: 'application/json' },
     redirect: 'manual',
     cache: 'no-store'
   })
 
+  await log('info', `Initial response: HTTP ${firstResponse.status}`, {
+    source: LOG_SOURCE,
+    details: `Status: ${firstResponse.status} ${firstResponse.statusText}\nContent-Type: ${firstResponse.headers.get('content-type') ?? 'N/A'}\nWWW-Authenticate: ${firstResponse.headers.get('www-authenticate') ?? 'N/A'}`
+  })
+
   if (firstResponse.status !== 401) {
-    return firstResponse
+    return { response: firstResponse, authScheme: 'none' }
   }
 
   // Inspect the WWW-Authenticate header to decide which scheme to use
   const wwwAuth = firstResponse.headers.get('www-authenticate') ?? ''
 
   if (wwwAuth.toLowerCase().includes('digest')) {
+    await log('info', 'Server requires Digest authentication, computing response...', { source: LOG_SOURCE })
     // Extract the Digest challenge (it may follow other schemes in the header)
     const digestStart = wwwAuth.toLowerCase().indexOf('digest')
     const digestChallenge = wwwAuth.slice(digestStart)
     const challenge = parseDigestChallenge(digestChallenge)
+    await log('info', 'Parsed Digest challenge', {
+      source: LOG_SOURCE,
+      details: `realm="${challenge.realm}", nonce="${challenge.nonce}", qop="${challenge.qop ?? 'N/A'}", algorithm="${challenge.algorithm ?? 'MD5'}", opaque="${challenge.opaque ?? 'N/A'}"`
+    })
+
     const parsedUrl = new URL(url)
     const uri = parsedUrl.pathname + parsedUrl.search
     const authHeader = buildDigestAuthHeader(username, password, 'GET', uri, challenge)
 
-    return fetch(url, {
+    const authResponse = await fetch(url, {
       headers: {
         Accept: 'application/json',
         Authorization: authHeader
@@ -107,12 +123,26 @@ async function fetchWithDigestAuth(
       redirect: 'manual',
       cache: 'no-store'
     })
+
+    await log(
+      authResponse.ok ? 'info' : 'error',
+      `Digest auth response: HTTP ${authResponse.status}`,
+      {
+        source: LOG_SOURCE,
+        details: authResponse.ok
+          ? `Authentication successful`
+          : `Status: ${authResponse.status} ${authResponse.statusText}\nWWW-Authenticate: ${authResponse.headers.get('www-authenticate') ?? 'N/A'}\nContent-Type: ${authResponse.headers.get('content-type') ?? 'N/A'}`
+      }
+    )
+
+    return { response: authResponse, authScheme: 'digest' }
   }
 
   if (wwwAuth.toLowerCase().includes('basic')) {
+    await log('info', 'Server requires Basic authentication, sending credentials...', { source: LOG_SOURCE })
     // Fall back to Basic authentication when the server requests it
     const basicCredentials = Buffer.from(`${username}:${password}`).toString('base64')
-    return fetch(url, {
+    const authResponse = await fetch(url, {
       headers: {
         Accept: 'application/json',
         Authorization: `Basic ${basicCredentials}`
@@ -120,10 +150,27 @@ async function fetchWithDigestAuth(
       redirect: 'manual',
       cache: 'no-store'
     })
+
+    await log(
+      authResponse.ok ? 'info' : 'error',
+      `Basic auth response: HTTP ${authResponse.status}`,
+      {
+        source: LOG_SOURCE,
+        details: authResponse.ok
+          ? `Authentication successful`
+          : `Status: ${authResponse.status} ${authResponse.statusText}`
+      }
+    )
+
+    return { response: authResponse, authScheme: 'basic' }
   }
 
+  await log('warn', 'No recognized authentication scheme in WWW-Authenticate header', {
+    source: LOG_SOURCE,
+    details: `WWW-Authenticate: ${wwwAuth}`
+  })
   // No recognized authentication scheme; return the original 401
-  return firstResponse
+  return { response: firstResponse, authScheme: 'unknown' }
 }
 
 function buildManagementApiUrl(baseUrl: string) {
@@ -144,15 +191,31 @@ export async function POST(request: NextRequest) {
     try {
       url = buildManagementApiUrl(baseUrl)
     } catch {
+      await log('error', 'Invalid Management Node URL', { source: LOG_SOURCE, details: `Provided URL: ${baseUrl}` })
       return NextResponse.json({
         error: 'Invalid Management Node URL. Please enter the HTTPS Management Node base URL, for example https://pexip.example.com'
       }, { status: 400 })
     }
 
-    const response = await fetchWithDigestAuth(url, username, password)
+    await log('info', `Starting CDR import from ${url}`, { source: LOG_SOURCE, details: `User: ${username}` })
+
+    let response: Response
+    let authScheme: string
+    try {
+      const result = await fetchWithDigestAuth(url, username, password)
+      response = result.response
+      authScheme = result.authScheme
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      await log('error', 'Network error contacting Pexip Management Node', { source: LOG_SOURCE, details: message })
+      return NextResponse.json({
+        error: `Could not reach the Management Node at ${baseUrl}. ${message}`
+      }, { status: 502 })
+    }
 
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('location')
+      await log('warn', `Pexip redirected request (HTTP ${response.status})`, { source: LOG_SOURCE, details: `Location: ${location ?? 'N/A'}` })
       return NextResponse.json({
         error: location
           ? `Pexip redirected the request to ${location}. Use the direct Management Node URL without /admin or any other path.`
@@ -161,9 +224,22 @@ export async function POST(request: NextRequest) {
     }
 
     if (!response.ok) {
-      const guidance = response.status === 401 || response.status === 403
-        ? ' Check that you are using the correct username and password for a Pexip Management API account.'
-        : ''
+      let guidance = ''
+      let details = `HTTP ${response.status} ${response.statusText}\nAuth scheme used: ${authScheme}`
+
+      if (response.status === 401 || response.status === 403) {
+        guidance = ' Check that you are using the correct username and password for a Pexip Management API account.'
+        details += `\nWWW-Authenticate: ${response.headers.get('www-authenticate') ?? 'N/A'}`
+        // Try to read response body for additional clues
+        try {
+          const errorBody = await response.text()
+          if (errorBody) details += `\nResponse body: ${errorBody.slice(0, 500)}`
+        } catch {
+          // ignore
+        }
+      }
+
+      await log('error', `Pexip API returned ${response.status}`, { source: LOG_SOURCE, details })
       return NextResponse.json({ error: `Pexip API returned ${response.status}.${guidance}` }, { status: 502 })
     }
 
@@ -174,10 +250,10 @@ export async function POST(request: NextRequest) {
     while (nextUrl) {
       const pageResponse = nextUrl === url
         ? response
-        : await fetchWithDigestAuth(nextUrl, username, password)
+        : (await fetchWithDigestAuth(nextUrl, username, password)).response
 
       if (!pageResponse.ok) {
-        console.warn(`Pexip API returned ${pageResponse.status} while fetching page: ${nextUrl}`)
+        await log('warn', `Pexip API returned ${pageResponse.status} while fetching page`, { source: LOG_SOURCE, details: `URL: ${nextUrl}` })
         break
       }
 
@@ -198,6 +274,8 @@ export async function POST(request: NextRequest) {
         nextUrl = null
       }
     }
+
+    await log('info', `Fetched ${conferences.length} conferences from Pexip API`, { source: LOG_SOURCE })
 
     let imported = 0
     let skipped = 0
@@ -236,14 +314,18 @@ export async function POST(request: NextRequest) {
         }
         imported++
       } catch (err) {
-        console.error('Failed to import conference:', conf.call_id ?? conf.name, err)
+        const errMessage = err instanceof Error ? err.message : String(err)
+        await log('warn', `Failed to import conference: ${conf.call_id ?? conf.name ?? 'unknown'}`, { source: LOG_SOURCE, details: errMessage })
         skipped++
       }
     }
 
+    await log('info', `CDR import complete: ${imported} imported, ${skipped} skipped`, { source: LOG_SOURCE })
+
     return NextResponse.json({ imported, skipped, total: conferences.length })
   } catch (error) {
-    console.error('CDR import error:', error)
+    const errMessage = error instanceof Error ? error.message : String(error)
+    await log('error', 'CDR import failed with unexpected error', { source: LOG_SOURCE, details: errMessage })
     return NextResponse.json({ error: 'Import failed' }, { status: 500 })
   }
 }
