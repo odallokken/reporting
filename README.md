@@ -4,7 +4,7 @@ A full-stack analytics and reporting dashboard for **Pexip Infinity** video conf
 
 ## Tech Stack
 
-- **[Next.js 14](https://nextjs.org/)** — App Router, TypeScript, server & client components
+- **[Next.js 15](https://nextjs.org/)** — App Router, TypeScript, server & client components
 - **[Tailwind CSS](https://tailwindcss.com/)** — Utility-first styling
 - **[Recharts](https://recharts.org/)** — Interactive charts and visualisations
 - **[Prisma ORM](https://www.prisma.io/)** — Type-safe database access with SQLite
