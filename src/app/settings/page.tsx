@@ -6,6 +6,7 @@ const SETTINGS_STORAGE_KEY = 'pexip-basic-import-settings-v1'
 type BrowserCredentialStore = {
   get: (options?: unknown) => Promise<{ id?: string; password?: string } | null>
 }
+type BrowserPasswordCredentialConstructor = new (data: { id: string; password: string; name?: string }) => Credential
 
 export default function SettingsPage() {
   const [baseUrl, setBaseUrl] = useState('')
@@ -20,7 +21,7 @@ export default function SettingsPage() {
     ? `${window.location.origin}/api/events`
     : '/api/events'
 
-  const hasCredentials = Boolean(username && password)
+  const hasImportFields = Boolean(username && password)
   const saveStatusStyles: Record<'saved' | 'saved-partial' | 'error', string> = {
     saved: 'bg-green-50 text-green-700',
     'saved-partial': 'bg-yellow-50 text-yellow-800',
@@ -31,10 +32,14 @@ export default function SettingsPage() {
     const loadSaved = async () => {
       try {
         const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY)
+        let savedUsername = ''
         if (raw) {
           const saved = JSON.parse(raw) as { baseUrl?: string; username?: string }
           if (saved.baseUrl) setBaseUrl(saved.baseUrl)
-          if (saved.username) setUsername(saved.username)
+          if (saved.username) {
+            savedUsername = saved.username
+            setUsername(saved.username)
+          }
         }
 
         if ('credentials' in navigator) {
@@ -42,7 +47,7 @@ export default function SettingsPage() {
             password: true,
             mediation: 'optional'
           })
-          if (credential?.id) setUsername(credential.id)
+          if (credential?.id && !savedUsername) setUsername(credential.id)
           if (credential?.password) setPassword(credential.password)
         }
       } catch (error) {
@@ -60,8 +65,8 @@ export default function SettingsPage() {
         JSON.stringify({ baseUrl, username })
       )
 
-      const PasswordCredentialCtor = (window as { PasswordCredential?: new (data: { id: string; password: string; name?: string }) => Credential }).PasswordCredential
-      if ('credentials' in navigator && PasswordCredentialCtor) {
+      const PasswordCredentialCtor = (window as { PasswordCredential?: BrowserPasswordCredentialConstructor }).PasswordCredential
+      if ('credentials' in navigator && PasswordCredentialCtor && password) {
         const credential = new PasswordCredentialCtor({
           id: username,
           password,
@@ -174,14 +179,14 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 onClick={handleSave}
-                disabled={!baseUrl || !hasCredentials}
+                disabled={!baseUrl || !username}
                 className="w-full py-2 px-4 border border-gray-300 text-gray-800 rounded-lg font-medium text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Save credentials
               </button>
               <button
                 onClick={handleImport}
-                disabled={importing || !baseUrl || !hasCredentials}
+                disabled={importing || !baseUrl || !hasImportFields}
                 className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {importing ? 'Importing...' : 'Import CDRs'}
