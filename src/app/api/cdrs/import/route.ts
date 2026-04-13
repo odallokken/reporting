@@ -43,15 +43,15 @@ function buildDigestAuthHeader(
 ): string {
   const { realm, nonce, qop, opaque, algorithm } = challenge
   const algo = (algorithm ?? 'MD5').toUpperCase()
+  const cnonce = randomBytes(8).toString('hex')
+  // nc is always 1 because we use a fresh nonce per request
+  const nc = '00000001'
 
   const ha1 = algo === 'MD5-SESS'
-    ? md5(`${md5(`${username}:${realm}:${password}`)}:${nonce}:${randomBytes(8).toString('hex')}`)
+    ? md5(`${md5(`${username}:${realm}:${password}`)}:${nonce}:${cnonce}`)
     : md5(`${username}:${realm}:${password}`)
 
   const ha2 = md5(`${method}:${uri}`)
-
-  const cnonce = randomBytes(8).toString('hex')
-  const nc = '00000001'
 
   let response: string
   if (qop) {
@@ -94,7 +94,8 @@ async function fetchWithDigestAuth(
 
   // Retry with Digest authentication
   const challenge = parseDigestChallenge(wwwAuth)
-  const uri = new URL(url).pathname
+  const parsedUrl = new URL(url)
+  const uri = parsedUrl.pathname + parsedUrl.search
   const authHeader = buildDigestAuthHeader(username, password, 'GET', uri, challenge)
 
   return fetch(url, {
