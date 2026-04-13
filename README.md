@@ -67,9 +67,61 @@ Go to **Settings** in the dashboard and enter your Management Node URL, admin us
 | `GET` | `/api/realtime` | Recent participant events |
 | `POST` | `/api/cdrs/import` | Import CDRs from Pexip Management API |
 
+## Production Deployment (Docker + ACME)
+
+The project includes a Docker Compose setup that runs the Next.js app behind a **[Caddy](https://caddyserver.com/)** reverse proxy. Caddy automatically obtains and renews TLS certificates from **Let's Encrypt** via the ACME protocol — no manual certificate management required.
+
+### Quick start
+
+```bash
+# 1. Set your public domain
+export DOMAIN=reports.example.com
+
+# 2. Build and start
+docker compose up -d --build
+```
+
+Caddy will:
+- Listen on ports **80** and **443**
+- Automatically obtain a Let's Encrypt certificate for your domain
+- Redirect HTTP → HTTPS
+- Reverse-proxy HTTPS traffic to the Next.js app
+- Auto-renew the certificate before it expires (every ~60 days)
+
+### Requirements
+
+- A public DNS record pointing `DOMAIN` to the server's IP address
+- Ports **80** and **443** open (required for ACME HTTP-01 challenge)
+- Docker and Docker Compose installed
+
+### Local / staging testing
+
+For local development without a real domain, Caddy will use a self-signed certificate:
+
+```bash
+DOMAIN=localhost docker compose up -d --build
+```
+
+To use the **Let's Encrypt staging** environment (avoids rate limits during testing), add a global option to the `Caddyfile`:
+
+```caddyfile
+{
+    acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+```
+
+### Architecture
+
+```
+Internet → :443 (Caddy + TLS) → :3000 (Next.js app, internal)
+```
+
+Caddy stores certificates in a Docker volume (`caddy-data`). The SQLite database is stored in a separate volume (`app-data`).
+
 ## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DATABASE_URL` | `file:./dev.db` | SQLite database path |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` | App base URL (used by server components) |
+| `DOMAIN` | `localhost` | Public domain for TLS certificate (used by Caddy) |

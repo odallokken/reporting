@@ -4,10 +4,11 @@ import { subDays } from 'date-fns'
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(params.id)
+    const { id: rawId } = await params
+    const id = parseInt(rawId)
     if (isNaN(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
 
     const vmr = await prisma.vMR.findUnique({
