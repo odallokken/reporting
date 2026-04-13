@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash, randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
 
 interface PexipCDRConference {
@@ -15,6 +16,94 @@ interface PexipCDRParticipant {
   call_uuid?: string
   connect_time?: string
   disconnect_time?: string
+}
+
+function md5(data: string): string {
+  return createHash('md5').update(data).digest('hex')
+}
+
+function parseDigestChallenge(header: string): Record<string, string> {
+  const params: Record<string, string> = {}
+  const digestPrefix = 'Digest '
+  const raw = header.startsWith(digestPrefix) ? header.slice(digestPrefix.length) : header
+  const regex = /(\w+)=(?:"([^"]*)"|([\w]+))/g
+  let match
+  while ((match = regex.exec(raw)) !== null) {
+    params[match[1]] = match[2] ?? match[3]
+  }
+  return params
+}
+
+function buildDigestAuthHeader(
+  username: string,
+  password: string,
+  method: string,
+  uri: string,
+  challenge: Record<string, string>
+): string {
+  const { realm, nonce, qop, opaque, algorithm } = challenge
+  const algo = (algorithm ?? 'MD5').toUpperCase()
+
+  const ha1 = algo === 'MD5-SESS'
+    ? md5(`${md5(`${username}:${realm}:${password}`)}:${nonce}:${randomBytes(8).toString('hex')}`)
+    : md5(`${username}:${realm}:${password}`)
+
+  const ha2 = md5(`${method}:${uri}`)
+
+  const cnonce = randomBytes(8).toString('hex')
+  const nc = '00000001'
+
+  let response: string
+  if (qop) {
+    response = md5(`${ha1}:${nonce}:${nc}:${cnonce}:${qop}:${ha2}`)
+  } else {
+    response = md5(`${ha1}:${nonce}:${ha2}`)
+  }
+
+  let header = `Digest username="${username}", realm="${realm}", nonce="${nonce}", uri="${uri}", response="${response}"`
+  if (qop) header += `, qop=${qop}, nc=${nc}, cnonce="${cnonce}"`
+  if (opaque) header += `, opaque="${opaque}"`
+  if (algorithm) header += `, algorithm=${algorithm}`
+  return header
+}
+
+async function fetchWithDigestAuth(
+  url: string,
+  username: string,
+  password: string
+): Promise<Response> {
+  // First attempt with Basic auth — some Pexip setups accept it
+  const basicCredentials = Buffer.from(`${username}:${password}`).toString('base64')
+  const firstResponse = await fetch(url, {
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Basic ${basicCredentials}`
+    },
+    redirect: 'manual'
+  })
+
+  if (firstResponse.status !== 401) {
+    return firstResponse
+  }
+
+  // Check if server requests Digest authentication
+  const wwwAuth = firstResponse.headers.get('www-authenticate') ?? ''
+  if (!wwwAuth.toLowerCase().startsWith('digest')) {
+    return firstResponse
+  }
+
+  // Retry with Digest authentication
+  const challenge = parseDigestChallenge(wwwAuth)
+  const uri = new URL(url).pathname
+  const authHeader = buildDigestAuthHeader(username, password, 'GET', uri, challenge)
+
+  return fetch(url, {
+    headers: {
+      Accept: 'application/json',
+      Authorization: authHeader
+    },
+    redirect: 'manual'
+  })
 }
 
 function buildManagementApiUrl(baseUrl: string) {
@@ -40,15 +129,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const credentials = Buffer.from(`${username}:${password}`).toString('base64')
-
-    const response = await fetch(url, {
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Basic ${credentials}`
-      },
-      redirect: 'manual'
-    })
+    const response = await fetchWithDigestAuth(url, username, password)
 
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('location')
@@ -61,7 +142,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const guidance = response.status === 401 || response.status === 403
-        ? ' Check that you are using the direct Management Node URL and a Management API account.'
+        ? ' Check that you are using the correct username and password for a Pexip Management API account.'
         : ''
       return NextResponse.json({ error: `Pexip API returned ${response.status}.${guidance}` }, { status: 502 })
     }
