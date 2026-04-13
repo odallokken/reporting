@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createHash, randomBytes } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { log } from '@/lib/logger'
 
 const LOG_SOURCE = 'cdr-import'
 
 interface PexipCDRConference {
-  id?: number
+  id?: string
   name?: string
   start_time?: string
   end_time?: string
   call_id?: string
-  participants?: PexipCDRParticipant[]
+  // The Pexip API returns participants as URI strings, not inline objects
+  participants?: string[]
 }
 
 interface PexipCDRParticipant {
@@ -21,156 +21,41 @@ interface PexipCDRParticipant {
   disconnect_time?: string
 }
 
-function md5(data: string): string {
-  return createHash('md5').update(data).digest('hex')
-}
-
-function parseDigestChallenge(header: string): Record<string, string> {
-  const params: Record<string, string> = {}
-  const digestPrefix = 'Digest '
-  const raw = header.startsWith(digestPrefix) ? header.slice(digestPrefix.length) : header
-  const regex = /(\w+)=(?:"([^"]*)"|([\w.+-]+))/g
-  let match
-  while ((match = regex.exec(raw)) !== null) {
-    params[match[1]] = match[2] ?? match[3]
+function buildBasicAuthHeaders(username: string, password: string): Record<string, string> {
+  const credentials = Buffer.from(`${username}:${password}`).toString('base64')
+  return {
+    Accept: 'application/json',
+    Authorization: `Basic ${credentials}`
   }
-  return params
 }
 
-function buildDigestAuthHeader(
-  username: string,
-  password: string,
-  method: string,
-  uri: string,
-  challenge: Record<string, string>
-): string {
-  const { realm, nonce, qop: rawQop, opaque, algorithm } = challenge
-  const algo = (algorithm ?? 'MD5').toUpperCase()
-  const cnonce = randomBytes(8).toString('hex')
-  // nc is always 1 because we use a fresh nonce per request
-  const nc = '00000001'
-  // Select the first qop value when the server offers multiple (e.g. "auth,auth-int")
-  const qop = rawQop?.split(',')[0].trim()
-
-  const ha1 = algo === 'MD5-SESS'
-    ? md5(`${md5(`${username}:${realm}:${password}`)}:${nonce}:${cnonce}`)
-    : md5(`${username}:${realm}:${password}`)
-
-  const ha2 = md5(`${method}:${uri}`)
-
-  let response: string
-  if (qop) {
-    response = md5(`${ha1}:${nonce}:${nc}:${cnonce}:${qop}:${ha2}`)
-  } else {
-    response = md5(`${ha1}:${nonce}:${ha2}`)
-  }
-
-  let header = `Digest username="${username}", realm="${realm}", nonce="${nonce}", uri="${uri}", response="${response}"`
-  if (qop) header += `, qop=${qop}, nc=${nc}, cnonce="${cnonce}"`
-  if (opaque) header += `, opaque="${opaque}"`
-  if (algorithm) header += `, algorithm=${algorithm}`
-  return header
-}
-
-async function fetchWithDigestAuth(
+async function fetchWithBasicAuth(
   url: string,
   username: string,
   password: string
-): Promise<{ response: Response; authScheme: string }> {
-  // Send an unauthenticated request first to obtain the server's auth challenge.
-  // Sending Basic credentials up-front can cause some Pexip nodes to reject the
-  // request without returning a Digest challenge, resulting in an unexplained 401.
-  await log('info', `Sending initial unauthenticated request to ${url}`, { source: LOG_SOURCE })
+): Promise<Response> {
+  // Pexip uses HTTP Basic Authentication over HTTPS (per docs.pexip.com).
+  // Send credentials preemptively — no unauthenticated round-trip needed.
+  await log('info', `Fetching ${url} with Basic auth`, { source: LOG_SOURCE })
 
-  const firstResponse = await fetch(url, {
-    headers: { Accept: 'application/json' },
+  const response = await fetch(url, {
+    headers: buildBasicAuthHeaders(username, password),
     redirect: 'manual',
     cache: 'no-store'
   })
 
-  await log('info', `Initial response: HTTP ${firstResponse.status}`, {
-    source: LOG_SOURCE,
-    details: `Status: ${firstResponse.status} ${firstResponse.statusText}\nContent-Type: ${firstResponse.headers.get('content-type') ?? 'N/A'}\nWWW-Authenticate: ${firstResponse.headers.get('www-authenticate') ?? 'N/A'}`
-  })
-
-  if (firstResponse.status !== 401) {
-    return { response: firstResponse, authScheme: 'none' }
-  }
-
-  // Inspect the WWW-Authenticate header to decide which scheme to use
-  const wwwAuth = firstResponse.headers.get('www-authenticate') ?? ''
-
-  if (wwwAuth.toLowerCase().includes('digest')) {
-    await log('info', 'Server requires Digest authentication, computing response...', { source: LOG_SOURCE })
-    // Extract the Digest challenge (it may follow other schemes in the header)
-    const digestStart = wwwAuth.toLowerCase().indexOf('digest')
-    const digestChallenge = wwwAuth.slice(digestStart)
-    const challenge = parseDigestChallenge(digestChallenge)
-    await log('info', 'Parsed Digest challenge', {
+  await log(
+    response.ok ? 'info' : 'error',
+    `Response: HTTP ${response.status}`,
+    {
       source: LOG_SOURCE,
-      details: `realm="${challenge.realm}", nonce="${challenge.nonce}", qop="${challenge.qop ?? 'N/A'}", algorithm="${challenge.algorithm ?? 'MD5'}", opaque="${challenge.opaque ?? 'N/A'}"`
-    })
+      details: response.ok
+        ? 'Request successful'
+        : `Status: ${response.status} ${response.statusText}`
+    }
+  )
 
-    const parsedUrl = new URL(url)
-    const uri = parsedUrl.pathname + parsedUrl.search
-    const authHeader = buildDigestAuthHeader(username, password, 'GET', uri, challenge)
-
-    const authResponse = await fetch(url, {
-      headers: {
-        Accept: 'application/json',
-        Authorization: authHeader
-      },
-      redirect: 'manual',
-      cache: 'no-store'
-    })
-
-    await log(
-      authResponse.ok ? 'info' : 'error',
-      `Digest auth response: HTTP ${authResponse.status}`,
-      {
-        source: LOG_SOURCE,
-        details: authResponse.ok
-          ? `Authentication successful`
-          : `Status: ${authResponse.status} ${authResponse.statusText}\nWWW-Authenticate: ${authResponse.headers.get('www-authenticate') ?? 'N/A'}\nContent-Type: ${authResponse.headers.get('content-type') ?? 'N/A'}`
-      }
-    )
-
-    return { response: authResponse, authScheme: 'digest' }
-  }
-
-  if (wwwAuth.toLowerCase().includes('basic')) {
-    await log('info', 'Server requires Basic authentication, sending credentials...', { source: LOG_SOURCE })
-    // Fall back to Basic authentication when the server requests it
-    const basicCredentials = Buffer.from(`${username}:${password}`).toString('base64')
-    const authResponse = await fetch(url, {
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Basic ${basicCredentials}`
-      },
-      redirect: 'manual',
-      cache: 'no-store'
-    })
-
-    await log(
-      authResponse.ok ? 'info' : 'error',
-      `Basic auth response: HTTP ${authResponse.status}`,
-      {
-        source: LOG_SOURCE,
-        details: authResponse.ok
-          ? `Authentication successful`
-          : `Status: ${authResponse.status} ${authResponse.statusText}`
-      }
-    )
-
-    return { response: authResponse, authScheme: 'basic' }
-  }
-
-  await log('warn', 'No recognized authentication scheme in WWW-Authenticate header', {
-    source: LOG_SOURCE,
-    details: `WWW-Authenticate: ${wwwAuth}`
-  })
-  // No recognized authentication scheme; return the original 401
-  return { response: firstResponse, authScheme: 'unknown' }
+  return response
 }
 
 function buildManagementApiUrl(baseUrl: string) {
@@ -200,11 +85,8 @@ export async function POST(request: NextRequest) {
     await log('info', `Starting CDR import from ${url}`, { source: LOG_SOURCE, details: `User: ${username}` })
 
     let response: Response
-    let authScheme: string
     try {
-      const result = await fetchWithDigestAuth(url, username, password)
-      response = result.response
-      authScheme = result.authScheme
+      response = await fetchWithBasicAuth(url, username, password)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       await log('error', 'Network error contacting Pexip Management Node', { source: LOG_SOURCE, details: message })
@@ -225,12 +107,11 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       let guidance = ''
-      let details = `HTTP ${response.status} ${response.statusText}\nAuth scheme used: ${authScheme}`
+      let details = `HTTP ${response.status} ${response.statusText}`
 
       if (response.status === 401 || response.status === 403) {
         guidance = ' Check that you are using the correct username and password for a Pexip Management API account.'
         details += `\nWWW-Authenticate: ${response.headers.get('www-authenticate') ?? 'N/A'}`
-        // Try to read response body for additional clues
         try {
           const errorBody = await response.text()
           if (errorBody) details += `\nResponse body: ${errorBody.slice(0, 500)}`
@@ -243,14 +124,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Pexip API returned ${response.status}.${guidance}` }, { status: 502 })
     }
 
-    // Fetch all pages — the Pexip API paginates results via meta.next
+    // Fetch all conference pages — the Pexip API paginates results via meta.next
+    const baseOrigin = new URL(url).origin
     const conferences: PexipCDRConference[] = []
     let nextUrl: string | null = url
 
     while (nextUrl) {
       const pageResponse = nextUrl === url
         ? response
-        : (await fetchWithDigestAuth(nextUrl, username, password)).response
+        : await fetchWithBasicAuth(nextUrl, username, password)
 
       if (!pageResponse.ok) {
         await log('warn', `Pexip API returned ${pageResponse.status} while fetching page`, { source: LOG_SOURCE, details: `URL: ${nextUrl}` })
@@ -267,12 +149,7 @@ export async function POST(request: NextRequest) {
       }
 
       const nextPath = pageData.meta?.next
-      if (nextPath) {
-        const base = new URL(url)
-        nextUrl = new URL(nextPath, base.origin).toString()
-      } else {
-        nextUrl = null
-      }
+      nextUrl = nextPath ? new URL(nextPath, baseOrigin).toString() : null
     }
 
     await log('info', `Fetched ${conferences.length} conferences from Pexip API`, { source: LOG_SOURCE })
@@ -299,19 +176,50 @@ export async function POST(request: NextRequest) {
           }
         })
 
-        if (conf.participants) {
-          for (const p of conf.participants) {
-            await prisma.participant.create({
-              data: {
-                conferenceId: conference.id,
-                name: p.display_name ?? null,
-                callUuid: p.call_uuid ?? null,
-                joinTime: p.connect_time ? new Date(p.connect_time) : new Date(),
-                leaveTime: p.disconnect_time ? new Date(p.disconnect_time) : null
+        // Fetch participants for this conference from the participant history endpoint.
+        // The conference object only contains participant URI strings, not inline data.
+        if (conf.id) {
+          const participantUrl = new URL(`/api/admin/history/v1/participant/`, baseOrigin)
+          participantUrl.searchParams.set('conference', String(conf.id))
+          let partNextUrl: string | null = participantUrl.toString()
+
+          while (partNextUrl) {
+            try {
+              const partResponse = await fetchWithBasicAuth(partNextUrl, username, password)
+              if (!partResponse.ok) {
+                await log('warn', `Failed to fetch participants for conference ${conf.id}: HTTP ${partResponse.status}`, { source: LOG_SOURCE })
+                break
               }
-            })
+
+              const partData = await partResponse.json() as {
+                meta?: { next?: string | null }
+                objects?: PexipCDRParticipant[]
+              }
+
+              if (partData.objects) {
+                for (const p of partData.objects) {
+                  await prisma.participant.create({
+                    data: {
+                      conferenceId: conference.id,
+                      name: p.display_name ?? null,
+                      callUuid: p.call_uuid ?? null,
+                      joinTime: p.connect_time ? new Date(p.connect_time) : new Date(),
+                      leaveTime: p.disconnect_time ? new Date(p.disconnect_time) : null
+                    }
+                  })
+                }
+              }
+
+              const nextPartPath = partData.meta?.next
+              partNextUrl = nextPartPath ? new URL(nextPartPath, baseOrigin).toString() : null
+            } catch (partErr) {
+              const msg = partErr instanceof Error ? partErr.message : String(partErr)
+              await log('warn', `Error fetching participants for conference ${conf.id}`, { source: LOG_SOURCE, details: msg })
+              break
+            }
           }
         }
+
         imported++
       } catch (err) {
         const errMessage = err instanceof Error ? err.message : String(err)
