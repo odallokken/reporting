@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createPrivateKey, createSign, randomUUID } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { log } from '@/lib/logger'
 
@@ -21,46 +22,140 @@ interface PexipCDRParticipant {
   disconnect_time?: string
 }
 
-async function fetchWithBasicAuth(
-  url: string,
-  username: string,
-  password: string
-): Promise<Response> {
-  // Pexip uses HTTP Basic Authentication over HTTPS (per docs.pexip.com).
-  // Match the behaviour shown in the Pexip API docs Python examples:
-  //   requests.get(url, auth=(user, pass), verify=True)
-  // This means: preemptive Basic auth, follow redirects, default Accept.
-  await log('info', `Fetching ${url} with Basic auth`, { source: LOG_SOURCE })
+type AuthContext =
+  | { type: 'basic'; username: string; password: string }
+  | { type: 'oauth2'; clientId: string; privateKey: string; accessToken?: string }
 
-  const credentials = Buffer.from(`${username}:${password}`).toString('base64')
+function toBase64Url(value: string | Buffer) {
+  return Buffer.from(value)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '')
+}
 
-  const response = await fetch(url, {
-    method: 'GET',
+function createClientAssertionJwt(clientId: string, tokenUrl: string, privateKey: string) {
+  const now = Math.floor(Date.now() / 1000)
+  const header = { alg: 'ES256', typ: 'JWT' }
+  const payload = {
+    sub: clientId,
+    iss: clientId,
+    aud: tokenUrl,
+    iat: now,
+    exp: now + 3600,
+    jti: randomUUID()
+  }
+
+  const encodedHeader = toBase64Url(JSON.stringify(header))
+  const encodedPayload = toBase64Url(JSON.stringify(payload))
+  const signingInput = `${encodedHeader}.${encodedPayload}`
+
+  const sign = createSign('SHA256')
+  sign.update(signingInput)
+  sign.end()
+  const signature = sign.sign({
+    key: createPrivateKey(privateKey),
+    dsaEncoding: 'ieee-p1363'
+  })
+
+  return `${signingInput}.${toBase64Url(signature)}`
+}
+
+async function fetchOAuthAccessToken(baseOrigin: string, clientId: string, privateKey: string) {
+  const tokenUrl = new URL('/oauth/token/', baseOrigin).toString()
+  const clientAssertion = createClientAssertionJwt(clientId, tokenUrl, privateKey)
+
+  const body = new URLSearchParams({
+    grant_type: 'client_credentials',
+    client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+    client_assertion: clientAssertion,
+    scope: 'is_admin use_api'
+  })
+
+  await log('info', `Requesting OAuth2 token from ${tokenUrl}`, { source: LOG_SOURCE })
+  const tokenResponse = await fetch(tokenUrl, {
+    method: 'POST',
     headers: {
-      Authorization: `Basic ${credentials}`
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
     },
-    // No redirect: 'manual' — follow redirects like Python requests does.
-    // No explicit Accept header — let the default (*/*) be used, matching
-    // the Python requests library behaviour shown in the Pexip docs examples.
+    body: body.toString(),
     cache: 'no-store'
   })
 
-  await log(
-    response.ok ? 'info' : 'error',
-    `Response: HTTP ${response.status}`,
-    {
+  if (!tokenResponse.ok) {
+    const errorBody = await tokenResponse.text().catch(() => '')
+    throw new Error(
+      `OAuth2 token request failed with HTTP ${tokenResponse.status}. ${errorBody.slice(0, 500)}`
+    )
+  }
+
+  const tokenData = await tokenResponse.json() as { access_token?: string }
+  if (!tokenData.access_token) {
+    throw new Error('OAuth2 token response did not include access_token')
+  }
+
+  return tokenData.access_token
+}
+
+async function fetchWithAuth(
+  url: string,
+  auth: AuthContext,
+  baseOrigin: string
+): Promise<Response> {
+  await log('info', `Fetching ${url} with ${auth.type === 'basic' ? 'Basic' : 'OAuth2'} auth`, {
+    source: LOG_SOURCE
+  })
+
+  if (auth.type === 'basic') {
+    const credentials = Buffer.from(`${auth.username}:${auth.password}`).toString('base64')
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Basic ${credentials}` },
+      cache: 'no-store'
+    })
+
+    await log(response.ok ? 'info' : 'error', `Response: HTTP ${response.status}`, {
       source: LOG_SOURCE,
       details: response.ok
         ? `Request successful (final URL: ${response.url})`
         : `Status: ${response.status} ${response.statusText}\nFinal URL: ${response.url}`
-    }
-  )
+    })
+    return response
+  }
 
+  if (!auth.accessToken) {
+    auth.accessToken = await fetchOAuthAccessToken(baseOrigin, auth.clientId, auth.privateKey)
+  }
+
+  let response = await fetch(url, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${auth.accessToken}` },
+    cache: 'no-store'
+  })
+
+  if (response.status === 401) {
+    auth.accessToken = await fetchOAuthAccessToken(baseOrigin, auth.clientId, auth.privateKey)
+    response = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${auth.accessToken}` },
+      cache: 'no-store'
+    })
+  }
+
+  await log(response.ok ? 'info' : 'error', `Response: HTTP ${response.status}`, {
+    source: LOG_SOURCE,
+    details: response.ok
+      ? `Request successful (final URL: ${response.url})`
+      : `Status: ${response.status} ${response.statusText}\nFinal URL: ${response.url}`
+  })
   return response
 }
 
 function buildManagementApiUrl(baseUrl: string) {
   const parsedUrl = new URL(baseUrl)
+  if (parsedUrl.protocol !== 'https:') {
+    throw new Error('URL must use HTTPS')
+  }
   // Warn early if the user accidentally included /admin or another path.
   // The Pexip docs state: enter the base URL only (e.g. https://pexip.example.com).
   if (parsedUrl.pathname !== '/' && parsedUrl.pathname !== '') {
@@ -71,11 +166,26 @@ function buildManagementApiUrl(baseUrl: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json() as { baseUrl: string; username: string; password: string }
-    const { baseUrl, username, password } = body
+    const body = await request.json() as {
+      baseUrl: string
+      authType?: 'basic' | 'oauth2'
+      username?: string
+      password?: string
+      clientId?: string
+      privateKey?: string
+    }
+    const { baseUrl, authType: incomingAuthType, username, password, clientId, privateKey } = body
+    const authType = incomingAuthType ?? (clientId && privateKey ? 'oauth2' : 'basic')
 
-    if (!baseUrl || !username || !password) {
+    if (!baseUrl) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    if (authType === 'basic' && (!username || !password)) {
+      return NextResponse.json({ error: 'Missing Basic auth credentials' }, { status: 400 })
+    }
+    if (authType === 'oauth2' && (!clientId || !privateKey)) {
+      return NextResponse.json({ error: 'Missing OAuth2 credentials' }, { status: 400 })
     }
 
     let url: string
@@ -88,11 +198,21 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    await log('info', `Starting CDR import from ${url}`, { source: LOG_SOURCE, details: `User: ${username}` })
+    const baseOrigin = new URL(url).origin
+    const auth: AuthContext = authType === 'oauth2'
+      ? { type: 'oauth2', clientId: String(clientId), privateKey: String(privateKey) }
+      : { type: 'basic', username: String(username), password: String(password) }
+
+    await log('info', `Starting CDR import from ${url}`, {
+      source: LOG_SOURCE,
+      details: authType === 'oauth2'
+        ? `Auth: OAuth2 client ${clientId}`
+        : `Auth: Basic user ${username}`
+    })
 
     let response: Response
     try {
-      response = await fetchWithBasicAuth(url, username, password)
+      response = await fetchWithAuth(url, auth, baseOrigin)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       await log('error', 'Network error contacting Pexip Management Node', { source: LOG_SOURCE, details: message })
@@ -106,13 +226,15 @@ export async function POST(request: NextRequest) {
       let details = `HTTP ${response.status} ${response.statusText}`
 
       if (response.status === 401 || response.status === 403) {
-        guidance = ' Check that you are using the correct username and password for a Pexip Management API account.'
+        guidance = authType === 'oauth2'
+          ? ' Check your OAuth2 Client ID and Private Key, and confirm the OAuth2 client role includes the required API permissions.'
+          : ' Check that you are using the correct username and password for a Pexip Management API account.'
         const wwwAuth = response.headers.get('www-authenticate') ?? 'N/A'
         details += `\nWWW-Authenticate: ${wwwAuth}`
         // If Bearer is listed in the challenge, the server has OAuth2 configured.
         // Basic auth might be disabled — mention this to help users troubleshoot.
-        if (wwwAuth.includes('Bearer')) {
-          guidance += ' If your Management Node has OAuth2 enabled, ensure that "Disable Basic authentication" is NOT selected under Administrator Authentication settings.'
+        if (wwwAuth.includes('Bearer') && authType === 'basic') {
+          guidance += ' If Basic auth is disabled, use OAuth2 client authentication (Client ID + Private Key) instead.'
         }
         try {
           const errorBody = await response.text()
@@ -127,14 +249,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch all conference pages — the Pexip API paginates results via meta.next
-    const baseOrigin = new URL(url).origin
     const conferences: PexipCDRConference[] = []
     let nextUrl: string | null = url
 
     while (nextUrl) {
       const pageResponse = nextUrl === url
         ? response
-        : await fetchWithBasicAuth(nextUrl, username, password)
+        : await fetchWithAuth(nextUrl, auth, baseOrigin)
 
       if (!pageResponse.ok) {
         await log('warn', `Pexip API returned ${pageResponse.status} while fetching page`, { source: LOG_SOURCE, details: `URL: ${nextUrl}` })
@@ -187,7 +308,7 @@ export async function POST(request: NextRequest) {
 
           while (partNextUrl) {
             try {
-              const partResponse = await fetchWithBasicAuth(partNextUrl, username, password)
+              const partResponse = await fetchWithAuth(partNextUrl, auth, baseOrigin)
               if (!partResponse.ok) {
                 await log('warn', `Failed to fetch participants for conference ${conf.id}: HTTP ${partResponse.status}`, { source: LOG_SOURCE })
                 break
