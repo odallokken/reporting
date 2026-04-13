@@ -111,11 +111,19 @@ You should now be inside a folder called `reporting` that contains all the proje
 
 ### Step 5 — Set Your Domain Name
 
-Tell the dashboard which domain name to use for the HTTPS certificate. Replace `reports.example.com` with your actual domain:
+Open the `.env` file in the project folder and set your domain name. Replace `localhost` with your actual domain:
 
 ```bash
-export DOMAIN=reports.example.com
+nano .env
 ```
+
+Change the `DOMAIN` line to your domain:
+
+```
+DOMAIN=reports.example.com
+```
+
+Save and close the file (`Ctrl+X`, then `Y`, then `Enter` in nano).
 
 ### Step 6 — Build and Start the Dashboard
 
@@ -145,6 +153,70 @@ docker compose ps
 ```
 
 Both the `app` and `caddy` services should show a status of `Up`.
+
+---
+
+## Troubleshooting
+
+If you cannot access the dashboard after starting it, work through the following checks.
+
+### 1. Check That the Containers Are Running
+
+```bash
+docker compose ps
+```
+
+Both `app` and `caddy` should show `Up`. If either is restarting or exited, check the logs:
+
+```bash
+docker compose logs app
+docker compose logs caddy
+```
+
+### 2. Verify Your Domain Is Set
+
+Make sure the `.env` file contains the correct domain:
+
+```bash
+cat .env
+```
+
+You should see `DOMAIN=your-domain.com` (not `localhost`). After changing the `.env` file, rebuild:
+
+```bash
+docker compose up -d --build
+```
+
+### 3. Confirm DNS Points to Your Server
+
+Your domain must have a DNS A-record pointing to your server's public IP. You can check this with:
+
+```bash
+dig +short your-domain.com
+```
+
+The result should be your server's IP address.
+
+### 4. Check That Ports 80 and 443 Are Open
+
+Caddy needs ports 80 and 443 to obtain a TLS certificate from Let's Encrypt. Make sure these ports are open in your firewall and cloud security group. You can test from another machine:
+
+```bash
+curl -v http://your-domain.com
+```
+
+If the connection times out, the ports are likely blocked.
+
+### 5. Check the Caddy Logs for Certificate Errors
+
+```bash
+docker compose logs caddy
+```
+
+Look for errors related to TLS or ACME. Common causes:
+- DNS not pointing to the server
+- Ports 80/443 blocked by a firewall
+- Let's Encrypt rate limits (wait an hour and try again)
 
 ---
 
@@ -216,20 +288,22 @@ docker compose restart
 
 ```bash
 cd reporting
+git stash        # save your .env changes
 git pull
+git stash pop    # restore your .env changes
 docker compose up -d --build
 ```
 
-This downloads the latest code and rebuilds the application.
+This downloads the latest code, preserves your `.env` settings, and rebuilds the application.
 
 ---
 
 ## Testing Without a Domain
 
-If you don't have a domain name yet, you can run the dashboard locally with a self-signed certificate:
+If you don't have a domain name yet, you can run the dashboard locally with a self-signed certificate. The default `DOMAIN=localhost` in the `.env` file already supports this, so just run:
 
 ```bash
-DOMAIN=localhost docker compose up -d --build
+docker compose up -d --build
 ```
 
 Open `https://localhost` in your browser. You will see a browser warning about the certificate — this is normal for self-signed certificates. Click through the warning to access the dashboard.
@@ -273,9 +347,11 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Environment Variables
 
+All variables are configured in the `.env` file at the root of the project.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DOMAIN` | `localhost` | The public domain for HTTPS certificates (used by Caddy) |
+| `DOMAIN` | `localhost` | The public domain for HTTPS certificates (used by Caddy). Set this to your domain before deploying. |
 | `DATABASE_URL` | `file:./dev.db` | Path to the SQLite database file |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` | Base URL of the app (used by server components) |
 
