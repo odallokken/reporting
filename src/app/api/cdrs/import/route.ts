@@ -108,7 +108,9 @@ export async function POST(request: NextRequest) {
         guidance = ' Check that you are using the correct username and password for a Pexip Management API account.'
         const wwwAuth = response.headers.get('www-authenticate') ?? 'N/A'
         details += `\nWWW-Authenticate: ${wwwAuth}`
-        guidance += ' If your Management Node has OAuth2 enabled, ensure that "Disable Basic authentication" is NOT selected under Administrator Authentication settings.'
+        if (wwwAuth.includes('Bearer')) {
+          guidance += ' If your Management Node has OAuth2 enabled, ensure that "Disable Basic authentication" is NOT selected under Administrator Authentication settings.'
+        }
         try {
           const errorBody = await response.text()
           if (errorBody) details += `\nResponse body: ${errorBody.slice(0, 500)}`

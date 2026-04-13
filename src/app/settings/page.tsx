@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react'
 import { Copy, CheckCircle } from 'lucide-react'
 
 const SETTINGS_STORAGE_KEY = 'pexip-basic-import-settings-v1'
+type BrowserCredentialStore = {
+  get: (options?: unknown) => Promise<{ id?: string; password?: string } | null>
+}
 
 export default function SettingsPage() {
   const [baseUrl, setBaseUrl] = useState('')
@@ -18,6 +21,11 @@ export default function SettingsPage() {
     : '/api/events'
 
   const hasCredentials = Boolean(username && password)
+  const saveStatusStyles: Record<'saved' | 'saved-partial' | 'error', string> = {
+    saved: 'bg-green-50 text-green-700',
+    'saved-partial': 'bg-yellow-50 text-yellow-800',
+    error: 'bg-red-50 text-red-700'
+  }
 
   useEffect(() => {
     const loadSaved = async () => {
@@ -30,15 +38,15 @@ export default function SettingsPage() {
         }
 
         if ('credentials' in navigator) {
-          const credential = await navigator.credentials.get({
+          const credential = await (navigator.credentials as BrowserCredentialStore).get({
             password: true,
             mediation: 'optional'
-          }) as PasswordCredential | null
+          })
           if (credential?.id) setUsername(credential.id)
           if (credential?.password) setPassword(credential.password)
         }
-      } catch {
-        // ignore invalid or unavailable saved credentials
+      } catch (error) {
+        console.warn('Could not load saved credentials:', error)
       }
     }
 
@@ -52,8 +60,9 @@ export default function SettingsPage() {
         JSON.stringify({ baseUrl, username })
       )
 
-      if ('credentials' in navigator && typeof PasswordCredential !== 'undefined') {
-        const credential = new PasswordCredential({
+      const PasswordCredentialCtor = (window as { PasswordCredential?: new (data: { id: string; password: string; name?: string }) => Credential }).PasswordCredential
+      if ('credentials' in navigator && PasswordCredentialCtor) {
+        const credential = new PasswordCredentialCtor({
           id: username,
           password,
           name: 'Pexip Management API'
@@ -63,7 +72,8 @@ export default function SettingsPage() {
       } else {
         setSaveStatus('saved-partial')
       }
-    } catch {
+    } catch (error) {
+      console.warn('Could not save credentials:', error)
       setSaveStatus('error')
     }
   }
@@ -180,7 +190,7 @@ export default function SettingsPage() {
           </div>
 
           {saveStatus && (
-            <div className={`mt-4 p-4 rounded-lg text-sm ${saveStatus === 'saved' ? 'bg-green-50 text-green-700' : saveStatus === 'saved-partial' ? 'bg-yellow-50 text-yellow-800' : 'bg-red-50 text-red-700'}`}>
+            <div className={`mt-4 p-4 rounded-lg text-sm ${saveStatusStyles[saveStatus]}`}>
               {saveStatus === 'saved' && 'Saved URL/username and password in your browser credential store.'}
               {saveStatus === 'saved-partial' && 'Saved URL/username. Browser secure password storage is not available here.'}
               {saveStatus === 'error' && 'Could not save settings in this browser.'}
