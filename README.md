@@ -255,8 +255,8 @@ Once the dashboard is running, you need to connect it to your Pexip Infinity env
 This gives you real-time participant activity as it happens.
 
 1. Log in to your **Pexip Infinity Management Node**.
-2. Go to **Platform → Global Settings → Event sink**.
-3. Set the event sink URL to:
+2. Go to **System → Event sinks** and add a new event sink (or edit an existing one).
+3. Set the **URL** to:
 
    ```
    https://reports.example.com/api/events
@@ -264,7 +264,11 @@ This gives you real-time participant activity as it happens.
 
    (Replace `reports.example.com` with your actual domain.)
 
-4. Save the settings.
+4. In the **Location** field, select the system location(s) that contain your **transcoding Conferencing Nodes**.
+
+   > **Important:** Event sinks must be assigned to locations that perform transcoding. Locations that only contain Proxying Edge Nodes do not generate events — the events for proxied calls are sent from the transcoding location instead.
+
+5. Save the event sink.
 
 The dashboard will now receive live events whenever a conference starts or ends, and whenever a participant joins or leaves.
 

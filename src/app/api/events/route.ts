@@ -1,78 +1,95 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import type { PexipEvent } from '@/lib/types'
+import type { PexipEvent, PexipEventData } from '@/lib/types'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as PexipEvent
-    processEvent(body).catch(err => console.error('Failed to process Pexip event:', err))
+
+    if (body.event === 'eventsink_bulk' && Array.isArray(body.data)) {
+      for (const evt of body.data) {
+        processSingleEvent(evt).catch(err => console.error('Failed to process Pexip bulk event:', err))
+      }
+    } else {
+      processSingleEvent(body).catch(err => console.error('Failed to process Pexip event:', err))
+    }
+
     return NextResponse.json({ status: 'ok' })
   } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
 }
 
-async function processEvent(data: PexipEvent) {
-  const { event, conference, participant_name, call_uuid, call_id, timestamp } = data
+async function processSingleEvent(body: PexipEvent) {
+  const { event, time } = body
+  const data = body.data as PexipEventData
+  const timestamp = new Date(time * 1000)
+
+  // For conference events, the conference name is in data.name
+  // For participant events, the conference name is in data.conference
+  const conferenceName = data.conference ?? data.name
+  if (!conferenceName) return
 
   const vmr = await prisma.vMR.upsert({
-    where: { name: conference },
-    update: { lastUsedAt: new Date(timestamp) },
-    create: { name: conference, lastUsedAt: new Date(timestamp) }
+    where: { name: conferenceName },
+    update: { lastUsedAt: timestamp },
+    create: { name: conferenceName, lastUsedAt: timestamp }
   })
+
+  const callId = data.call_id ?? null
 
   if (event === 'conference_started') {
     try {
       await prisma.conference.create({
-        data: { vmrId: vmr.id, startTime: new Date(timestamp), callId: call_id ?? null }
+        data: { vmrId: vmr.id, startTime: timestamp, callId }
       })
     } catch (err) {
-      // Duplicate key: conference already exists for this callId, safe to ignore
       if (!(err instanceof Error && err.message.includes('Unique constraint'))) {
         console.error('Unexpected error creating conference:', err)
       }
     }
   } else if (event === 'conference_ended') {
-    if (call_id) {
+    if (callId) {
       await prisma.conference.updateMany({
-        where: { callId: call_id },
-        data: { endTime: new Date(timestamp) }
+        where: { callId },
+        data: { endTime: timestamp }
       })
     }
   } else if (event === 'participant_connected') {
-    let conf = call_id ? await prisma.conference.findUnique({ where: { callId: call_id } }) : null
+    let conf = callId ? await prisma.conference.findUnique({ where: { callId } }) : null
     if (!conf) {
       try {
         conf = await prisma.conference.create({
-          data: { vmrId: vmr.id, startTime: new Date(timestamp), callId: call_id ?? null }
+          data: { vmrId: vmr.id, startTime: timestamp, callId }
         })
       } catch (err) {
-        // Duplicate key: conference already exists, fetch it
         if (!(err instanceof Error && err.message.includes('Unique constraint'))) {
           console.error('Unexpected error creating conference for participant:', err)
         }
-        if (call_id) {
-          conf = await prisma.conference.findUnique({ where: { callId: call_id } })
+        if (callId) {
+          conf = await prisma.conference.findUnique({ where: { callId } })
         }
       }
     }
-    if (conf && call_uuid) {
+    const callUuid = data.uuid ?? null
+    if (conf && callUuid) {
       await prisma.participant.upsert({
-        where: { callUuid: call_uuid },
-        update: { joinTime: new Date(timestamp) },
+        where: { callUuid },
+        update: { joinTime: timestamp },
         create: {
           conferenceId: conf.id,
-          name: participant_name ?? null,
-          callUuid: call_uuid,
-          joinTime: new Date(timestamp)
+          name: data.display_name ?? null,
+          callUuid,
+          joinTime: timestamp
         }
       })
     }
   } else if (event === 'participant_disconnected') {
-    if (call_uuid) {
+    const callUuid = data.uuid ?? null
+    if (callUuid) {
       await prisma.participant.updateMany({
-        where: { callUuid: call_uuid },
-        data: { leaveTime: new Date(timestamp) }
+        where: { callUuid },
+        data: { leaveTime: timestamp }
       })
     }
   }

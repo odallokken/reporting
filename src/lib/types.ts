@@ -53,11 +53,34 @@ export interface RecentEvent {
   }
 }
 
+export interface PexipEventData {
+  // Conference events
+  name?: string
+  start_time?: number
+  end_time?: number
+  service_type?: string
+  // Participant events
+  conference?: string
+  display_name?: string
+  uuid?: string
+  call_id?: string
+  connect_time?: number
+  disconnect_reason?: string
+  duration?: number
+  protocol?: string
+  role?: string
+  source_alias?: string
+  destination_alias?: string
+  call_direction?: string
+  remote_address?: string
+  vendor?: string
+}
+
 export interface PexipEvent {
   event: string
-  conference: string
-  participant_name?: string
-  call_uuid?: string
-  call_id?: string
-  timestamp: string
+  node: string
+  seq: number
+  version: number
+  time: number
+  data: PexipEventData | PexipEvent[]
 }
