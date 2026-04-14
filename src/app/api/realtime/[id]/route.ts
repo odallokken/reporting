@@ -39,6 +39,13 @@ export async function GET(
       callDirection: participant.callDirection,
       remoteAddress: participant.remoteAddress,
       vendor: participant.vendor,
+      rxBandwidth: participant.rxBandwidth,
+      txBandwidth: participant.txBandwidth,
+      mediaNode: participant.mediaNode,
+      signallingNode: participant.signallingNode,
+      encryption: participant.encryption,
+      isMuted: participant.isMuted,
+      isPresenting: participant.isPresenting,
       conference: {
         id: participant.conference.id,
         startTime: participant.conference.startTime.toISOString(),

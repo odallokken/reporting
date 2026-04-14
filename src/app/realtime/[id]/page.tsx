@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Globe, Monitor, Phone, Shield, User } from 'lucide-react'
+import { ArrowLeft, ArrowDown, ArrowUp, Clock, Globe, Lock, Monitor, Phone, Shield, User } from 'lucide-react'
 import { formatDateTime, formatDuration } from '@/lib/utils'
 
 interface ParticipantDetail {
@@ -19,6 +19,13 @@ interface ParticipantDetail {
   callDirection: string | null
   remoteAddress: string | null
   vendor: string | null
+  rxBandwidth: number | null
+  txBandwidth: number | null
+  mediaNode: string | null
+  signallingNode: string | null
+  encryption: string | null
+  isMuted: boolean | null
+  isPresenting: boolean | null
   conference: {
     id: number
     startTime: string
@@ -168,6 +175,82 @@ export default function ParticipantDetailPage() {
             <DetailRow label="Call Direction" value={participant.callDirection} icon={Phone} />
             <DetailRow label="Vendor / Client" value={participant.vendor} icon={Monitor} />
             <DetailRow label="Remote Address" value={participant.remoteAddress} icon={Globe} />
+            <DetailRow label="Encryption" value={participant.encryption} icon={Lock} />
+          </div>
+        </div>
+
+        {/* Bandwidth & Media */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Bandwidth &amp; Media</h2>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="bg-blue-50 rounded-lg p-4 text-center">
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <ArrowDown size={14} className="text-blue-500" />
+                <span className="text-xs font-medium text-blue-600 uppercase">Receive</span>
+              </div>
+              <p className="text-2xl font-bold text-blue-700">
+                {participant.rxBandwidth != null ? participant.rxBandwidth : '-'}
+              </p>
+              <p className="text-xs text-blue-500">kbps</p>
+            </div>
+            <div className="bg-green-50 rounded-lg p-4 text-center">
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <ArrowUp size={14} className="text-green-500" />
+                <span className="text-xs font-medium text-green-600 uppercase">Transmit</span>
+              </div>
+              <p className="text-2xl font-bold text-green-700">
+                {participant.txBandwidth != null ? participant.txBandwidth : '-'}
+              </p>
+              <p className="text-xs text-green-500">kbps</p>
+            </div>
+          </div>
+          {(participant.rxBandwidth != null && participant.txBandwidth != null) && (
+            <div className="bg-gray-50 rounded-lg p-3 mb-4">
+              <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                <span>Total bandwidth</span>
+                <span className="font-medium text-gray-700">{participant.rxBandwidth + participant.txBandwidth} kbps</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="flex h-2 rounded-full overflow-hidden">
+                  <div
+                    className="bg-blue-400"
+                    style={{ width: `${(participant.rxBandwidth / (participant.rxBandwidth + participant.txBandwidth)) * 100}%` }}
+                  />
+                  <div
+                    className="bg-green-400"
+                    style={{ width: `${(participant.txBandwidth / (participant.rxBandwidth + participant.txBandwidth)) * 100}%` }}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-between text-xs mt-1">
+                <span className="text-blue-500">RX {Math.round((participant.rxBandwidth / (participant.rxBandwidth + participant.txBandwidth)) * 100)}%</span>
+                <span className="text-green-500">TX {Math.round((participant.txBandwidth / (participant.rxBandwidth + participant.txBandwidth)) * 100)}%</span>
+              </div>
+            </div>
+          )}
+          <div className="space-y-0">
+            <div className="flex items-center gap-3 py-3 border-b border-gray-100">
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500">Muted</p>
+                <p className="text-sm text-gray-900">
+                  {participant.isMuted === true && <span className="inline-flex items-center gap-1 text-red-600"><span className="w-2 h-2 rounded-full bg-red-500" /> Yes</span>}
+                  {participant.isMuted === false && <span className="inline-flex items-center gap-1 text-green-600"><span className="w-2 h-2 rounded-full bg-green-500" /> No</span>}
+                  {participant.isMuted == null && '-'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 py-3 border-b border-gray-100">
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500">Presenting</p>
+                <p className="text-sm text-gray-900">
+                  {participant.isPresenting === true && <span className="inline-flex items-center gap-1 text-blue-600"><span className="w-2 h-2 rounded-full bg-blue-500" /> Yes</span>}
+                  {participant.isPresenting === false && <span className="inline-flex items-center gap-1 text-gray-600"><span className="w-2 h-2 rounded-full bg-gray-400" /> No</span>}
+                  {participant.isPresenting == null && '-'}
+                </p>
+              </div>
+            </div>
+            <DetailRow label="Media Node" value={participant.mediaNode} />
+            <DetailRow label="Signalling Node" value={participant.signallingNode} />
           </div>
         </div>
 

@@ -89,8 +89,33 @@ async function processSingleEvent(body: PexipEvent) {
           callDirection: data.call_direction ?? null,
           remoteAddress: data.remote_address ?? null,
           vendor: data.vendor ?? null,
+          rxBandwidth: data.rx_bandwidth ?? null,
+          txBandwidth: data.tx_bandwidth ?? null,
+          mediaNode: data.media_node ?? null,
+          signallingNode: data.signalling_node ?? null,
+          encryption: data.encryption ?? null,
+          isMuted: data.is_muted ?? null,
+          isPresenting: data.is_presenting ?? null,
         }
       })
+    }
+  } else if (event === 'participant_updated') {
+    const callUuid = data.uuid ?? null
+    if (callUuid) {
+      const updateData: Record<string, unknown> = {}
+      if (data.rx_bandwidth !== undefined) updateData.rxBandwidth = data.rx_bandwidth
+      if (data.tx_bandwidth !== undefined) updateData.txBandwidth = data.tx_bandwidth
+      if (data.is_muted !== undefined) updateData.isMuted = data.is_muted
+      if (data.is_presenting !== undefined) updateData.isPresenting = data.is_presenting
+      if (data.role !== undefined) updateData.role = data.role
+      if (data.encryption !== undefined) updateData.encryption = data.encryption
+      if (data.media_node !== undefined) updateData.mediaNode = data.media_node
+      if (Object.keys(updateData).length > 0) {
+        await prisma.participant.updateMany({
+          where: { callUuid },
+          data: updateData
+        })
+      }
     }
   } else if (event === 'participant_disconnected') {
     const callUuid = data.uuid ?? null

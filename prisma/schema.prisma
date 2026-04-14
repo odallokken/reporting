@@ -43,6 +43,13 @@ model Participant {
   callDirection    String?
   remoteAddress    String?
   vendor           String?
+  rxBandwidth      Int?
+  txBandwidth      Int?
+  mediaNode        String?
+  signallingNode   String?
+  encryption       String?
+  isMuted          Boolean?
+  isPresenting     Boolean?
   createdAt        DateTime   @default(now())
 }
 
