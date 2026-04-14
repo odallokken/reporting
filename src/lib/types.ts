@@ -74,6 +74,14 @@ export interface PexipEventData {
   call_direction?: string
   remote_address?: string
   vendor?: string
+  rx_bandwidth?: number
+  tx_bandwidth?: number
+  media_node?: string
+  signalling_node?: string
+  encryption?: string
+  is_muted?: boolean
+  is_presenting?: boolean
+  has_media?: boolean
 }
 
 export interface PexipEvent {
