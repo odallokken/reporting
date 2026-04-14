@@ -42,14 +42,19 @@ function fetchWithBasicAuth(
         const bodyBuffer = Buffer.concat(chunks)
         const textStr = bodyBuffer.toString('utf8')
         const isOk = res.statusCode! >= 200 && res.statusCode! < 300
+        const headerEntries: [string, string][] = []
+        for (const [key, val] of Object.entries(res.headers)) {
+          if (val !== undefined) {
+            headerEntries.push([key, Array.isArray(val) ? val.join(', ') : val])
+          }
+        }
 
         resolve({
           ok: isOk,
           status: res.statusCode!,
           statusText: res.statusMessage || '',
           url,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          headers: new Headers(res.headers as any),
+          headers: new Headers(headerEntries),
           text: async () => textStr,
           json: async () => JSON.parse(textStr)
         } as unknown as Response)

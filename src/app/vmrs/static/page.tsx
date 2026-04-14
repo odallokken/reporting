@@ -5,6 +5,10 @@ import type { StaticVMR } from '@/lib/types'
 
 const SETTINGS_STORAGE_KEY = 'pexip-basic-import-settings-v1'
 
+interface BrowserCredentialStore {
+  get: (options?: unknown) => Promise<{ id?: string; password?: string } | null>
+}
+
 function useCredentials() {
   const [baseUrl, setBaseUrl] = useState('')
   const [username, setUsername] = useState('')
@@ -15,18 +19,22 @@ function useCredentials() {
     const load = async () => {
       try {
         const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY)
+        let savedUsername = ''
         if (raw) {
           const saved = JSON.parse(raw) as { baseUrl?: string; username?: string }
           if (saved.baseUrl) setBaseUrl(saved.baseUrl)
-          if (saved.username) setUsername(saved.username)
+          if (saved.username) {
+            savedUsername = saved.username
+            setUsername(saved.username)
+          }
         }
 
         if ('credentials' in navigator) {
-          const credential = await (navigator.credentials as { get: (opts?: unknown) => Promise<{ id?: string; password?: string } | null> }).get({
+          const credential = await (navigator.credentials as BrowserCredentialStore).get({
             password: true,
             mediation: 'optional'
           })
-          if (credential?.id && !username) setUsername(credential.id)
+          if (credential?.id && !savedUsername) setUsername(credential.id)
           if (credential?.password) setPassword(credential.password)
         }
       } catch {
