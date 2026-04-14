@@ -28,15 +28,22 @@ model Conference {
 }
 
 model Participant {
-  id           Int        @id @default(autoincrement())
-  conferenceId Int
-  conference   Conference @relation(fields: [conferenceId], references: [id])
-  name         String?
-  identity     String?
-  joinTime     DateTime
-  leaveTime    DateTime?
-  callUuid     String?    @unique
-  createdAt    DateTime   @default(now())
+  id               Int        @id @default(autoincrement())
+  conferenceId     Int
+  conference       Conference @relation(fields: [conferenceId], references: [id])
+  name             String?
+  identity         String?
+  joinTime         DateTime
+  leaveTime        DateTime?
+  callUuid         String?    @unique
+  protocol         String?
+  role             String?
+  sourceAlias      String?
+  destinationAlias String?
+  callDirection    String?
+  remoteAddress    String?
+  vendor           String?
+  createdAt        DateTime   @default(now())
 }
 
 model Log {

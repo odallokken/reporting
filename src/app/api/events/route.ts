@@ -79,8 +79,16 @@ async function processSingleEvent(body: PexipEvent) {
         create: {
           conferenceId: conf.id,
           name: data.display_name ?? null,
+          identity: data.source_alias ?? null,
           callUuid,
-          joinTime: timestamp
+          joinTime: timestamp,
+          protocol: data.protocol ?? null,
+          role: data.role ?? null,
+          sourceAlias: data.source_alias ?? null,
+          destinationAlias: data.destination_alias ?? null,
+          callDirection: data.call_direction ?? null,
+          remoteAddress: data.remote_address ?? null,
+          vendor: data.vendor ?? null,
         }
       })
     }

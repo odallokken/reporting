@@ -21,9 +21,12 @@ export async function GET() {
       events: events.map(e => ({
         id: e.id,
         name: e.name,
+        identity: e.identity,
         joinTime: e.joinTime.toISOString(),
         leaveTime: e.leaveTime?.toISOString() ?? null,
         callUuid: e.callUuid,
+        protocol: e.protocol,
+        role: e.role,
         conference: {
           id: e.conference.id,
           vmr: { id: e.conference.vmr.id, name: e.conference.vmr.name }
