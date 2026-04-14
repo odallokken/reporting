@@ -53,6 +53,18 @@ export interface RecentEvent {
   }
 }
 
+export interface StaticVMR {
+  id: number
+  name: string
+  description: string
+  aliases: { alias: string }[]
+  pin: string | null
+  guest_pin: string | null
+  allow_guests: boolean
+  tag: string | null
+  service_type: string | null
+}
+
 export interface PexipEventData {
   // Conference events
   name?: string
