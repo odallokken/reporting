@@ -1,7 +1,8 @@
 import { StatsCard } from '@/components/StatsCard'
+import { StaticVmrCountCard } from '@/components/StaticVmrCountCard'
 import { ActivityLineChart } from '@/components/charts/ActivityLineChart'
 import { TopVMRsBarChart } from '@/components/charts/TopVMRsBarChart'
-import { Video, Activity, Users, BarChart2, Wifi } from 'lucide-react'
+import { Activity, Users, Wifi } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/utils'
 import type { DashboardStats } from '@/lib/types'
 import Link from 'next/link'
@@ -14,8 +15,7 @@ async function getDashboardData(): Promise<DashboardStats> {
     return res.json()
   } catch {
     return {
-      totalVmrs: 0, activeVmrs: 0, staleVmrs: 0,
-      totalConferences: 0, totalParticipants: 0,
+      activeVmrs: 0,
       activeConferences: 0, activeParticipants: 0,
       recentActivity: [], usageByDay: [], topVmrs: []
     }
@@ -32,11 +32,10 @@ export default async function DashboardPage() {
         <p className="text-gray-500 mt-1">Overview of your Pexip Infinity environment</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatsCard title="Active Conferences" value={data.activeConferences} subtitle="Right now" icon={Wifi} color="green" href="/realtime" />
         <StatsCard title="Active Participants" value={data.activeParticipants} subtitle="Right now" icon={Users} color="blue" href="/realtime" />
-        <StatsCard title="Total VMRs" value={data.totalVmrs} icon={Video} color="purple" href="/vmrs/static" />
-        <StatsCard title="Total Conferences" value={data.totalConferences} subtitle="All time" icon={BarChart2} color="yellow" href="/logs" />
+        <StaticVmrCountCard />
         <StatsCard title="Active VMRs" value={data.activeVmrs} subtitle="Used in last 30 days" icon={Activity} color="green" href="/vmrs/static" />
       </div>
 

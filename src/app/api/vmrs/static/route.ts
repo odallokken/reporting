@@ -68,11 +68,12 @@ function fetchWithBasicAuth(
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json() as { baseUrl: string; username: string; password: string; search?: string }
+    const body = await request.json() as { baseUrl: string; username: string; password: string; search?: string; countOnly?: boolean }
     const baseUrl = body.baseUrl?.trim()
     const username = body.username?.trim()
     const password = body.password ?? ''
     const search = body.search?.trim() ?? ''
+    const countOnly = body.countOnly === true
 
     if (!baseUrl || !username || !password) {
       return NextResponse.json({ error: 'Missing credentials. Please configure them in Settings.' }, { status: 400 })
@@ -91,6 +92,22 @@ export async function POST(request: NextRequest) {
     const apiUrl = new URL('/api/admin/configuration/v1/conference/', parsedUrl.origin)
     if (search) {
       apiUrl.searchParams.set('name__icontains', search)
+    }
+
+    if (countOnly) {
+      apiUrl.searchParams.set('limit', '0')
+      let response: Response
+      try {
+        response = await fetchWithBasicAuth(apiUrl.toString(), username, password)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        return NextResponse.json({ error: `Could not reach Management Node: ${message}` }, { status: 502 })
+      }
+      if (!response.ok) {
+        return NextResponse.json({ error: `Pexip API returned ${response.status}` }, { status: 502 })
+      }
+      const data = await response.json() as { meta?: { total_count?: number } }
+      return NextResponse.json({ total: data.meta?.total_count ?? 0 })
     }
 
     const vmrs: PexipConference[] = []

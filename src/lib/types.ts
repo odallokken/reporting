@@ -32,11 +32,7 @@ export interface ParticipantRecord {
 }
 
 export interface DashboardStats {
-  totalVmrs: number
   activeVmrs: number
-  staleVmrs: number
-  totalConferences: number
-  totalParticipants: number
   activeConferences: number
   activeParticipants: number
   recentActivity: RecentEvent[]
