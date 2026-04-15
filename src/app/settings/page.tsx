@@ -34,14 +34,16 @@ export default function SettingsPage() {
         const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY)
         let savedUsername = ''
         if (raw) {
-          const saved = JSON.parse(raw) as { baseUrl?: string; username?: string; password?: string }
+          const saved = JSON.parse(raw) as { baseUrl?: string; username?: string }
           if (saved.baseUrl) setBaseUrl(saved.baseUrl)
           if (saved.username) {
             savedUsername = saved.username
             setUsername(saved.username)
           }
-          if (saved.password) setPassword(saved.password)
         }
+
+        const savedPassword = window.sessionStorage.getItem(`${SETTINGS_STORAGE_KEY}-pw`)
+        if (savedPassword) setPassword(savedPassword)
 
         if ('credentials' in navigator) {
           const credential = await (navigator.credentials as BrowserCredentialStore).get({
@@ -63,8 +65,9 @@ export default function SettingsPage() {
     try {
       window.localStorage.setItem(
         SETTINGS_STORAGE_KEY,
-        JSON.stringify({ baseUrl, username, password })
+        JSON.stringify({ baseUrl, username })
       )
+      window.sessionStorage.setItem(`${SETTINGS_STORAGE_KEY}-pw`, password)
 
       const PasswordCredentialCtor = (window as { PasswordCredential?: BrowserPasswordCredentialConstructor }).PasswordCredential
       if ('credentials' in navigator && PasswordCredentialCtor && password) {
