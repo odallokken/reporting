@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Copy, CheckCircle } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { Copy, CheckCircle, Trash2, UserPlus } from 'lucide-react'
 
 const SETTINGS_STORAGE_KEY = 'pexip-basic-import-settings-v1'
 type BrowserCredentialStore = {
@@ -8,7 +9,15 @@ type BrowserCredentialStore = {
 }
 type BrowserPasswordCredentialConstructor = new (data: { id: string; password: string; name?: string }) => Credential
 
+interface AppUser {
+  id: number
+  username: string
+  role: string
+  createdAt: string
+}
+
 export default function SettingsPage() {
+  const { data: session } = useSession()
   const [baseUrl, setBaseUrl] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -16,6 +25,16 @@ export default function SettingsPage() {
   const [importResult, setImportResult] = useState<{ imported?: number; skipped?: number; error?: string } | null>(null)
   const [copied, setCopied] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saved-partial' | 'error' | null>(null)
+
+  // User management state
+  const [users, setUsers] = useState<AppUser[]>([])
+  const [showAddUser, setShowAddUser] = useState(false)
+  const [newUsername, setNewUsername] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [newRole, setNewRole] = useState('admin')
+  const [userError, setUserError] = useState('')
+  const [userLoading, setUserLoading] = useState(false)
+  const isAdmin = (session?.user as { role?: string } | undefined)?.role === 'admin'
 
   const eventSinkUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/api/events`
@@ -60,6 +79,71 @@ export default function SettingsPage() {
 
     loadSaved()
   }, [])
+
+  // Fetch users
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/auth/users')
+      if (res.ok) {
+        const data = await res.json() as { users: AppUser[] }
+        setUsers(data.users)
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  useEffect(() => {
+    if (isAdmin) fetchUsers()
+  }, [isAdmin])
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setUserError('')
+    setUserLoading(true)
+
+    try {
+      const res = await fetch('/api/auth/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: newUsername, password: newPassword, role: newRole }),
+      })
+      const data = await res.json() as { error?: string }
+
+      if (!res.ok) {
+        setUserError(data.error ?? 'Failed to create user')
+        return
+      }
+
+      setNewUsername('')
+      setNewPassword('')
+      setNewRole('admin')
+      setShowAddUser(false)
+      fetchUsers()
+    } catch {
+      setUserError('An error occurred')
+    } finally {
+      setUserLoading(false)
+    }
+  }
+
+  const handleDeleteUser = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this user?')) return
+
+    try {
+      const res = await fetch(`/api/auth/users?id=${id}`, { method: 'DELETE' })
+      const data = await res.json() as { error?: string }
+
+      if (!res.ok) {
+        alert(data.error ?? 'Failed to delete user')
+        return
+      }
+
+      fetchUsers()
+    } catch {
+      alert('An error occurred')
+    }
+  }
 
   const handleSave = async () => {
     try {
@@ -216,6 +300,127 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
+
+        {isAdmin && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
+              <button
+                onClick={() => setShowAddUser(!showAddUser)}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+              >
+                <UserPlus size={16} />
+                Add User
+              </button>
+            </div>
+
+            {showAddUser && (
+              <form onSubmit={handleAddUser} className="mb-6 p-4 bg-gray-50 rounded-lg space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <input
+                      type="text"
+                      value={newUsername}
+                      onChange={e => setNewUsername(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      placeholder="Min. 8 characters"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                    <select
+                      value={newRole}
+                      onChange={e => setNewRole(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="viewer">Viewer</option>
+                    </select>
+                  </div>
+                </div>
+                {userError && (
+                  <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded-lg">{userError}</div>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={userLoading}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {userLoading ? 'Creating…' : 'Create User'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowAddUser(false); setUserError('') }}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left border-b border-gray-200">
+                    <th className="pb-2 font-medium text-gray-600">Username</th>
+                    <th className="pb-2 font-medium text-gray-600">Role</th>
+                    <th className="pb-2 font-medium text-gray-600">Created</th>
+                    <th className="pb-2 font-medium text-gray-600 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map(user => (
+                    <tr key={user.id} className="border-b border-gray-100 last:border-0">
+                      <td className="py-3 text-gray-900">
+                        {user.username}
+                        {String(user.id) === session?.user?.id && (
+                          <span className="ml-2 text-xs text-blue-600 font-medium">(you)</span>
+                        )}
+                      </td>
+                      <td className="py-3">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                          user.role === 'admin'
+                            ? 'bg-purple-100 text-purple-700'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="py-3 text-gray-500">
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 text-right">
+                        {String(user.id) !== session?.user?.id && (
+                          <button
+                            onClick={() => handleDeleteUser(user.id)}
+                            className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                            title="Delete user"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

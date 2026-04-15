@@ -113,3 +113,11 @@ model Log {
   source    String?  // e.g. "cdr-import", "events"
   createdAt DateTime @default(now())
 }
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  role         String   @default("admin") // admin, viewer
+  createdAt    DateTime @default(now())
+}

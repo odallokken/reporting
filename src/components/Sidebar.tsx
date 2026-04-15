@@ -1,7 +1,8 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Video, VideoOff, Activity, Settings, ScrollText } from 'lucide-react'
+import { useSession, signOut } from 'next-auth/react'
+import { LayoutDashboard, Video, VideoOff, Activity, Settings, ScrollText, LogOut } from 'lucide-react'
 
 const links = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -14,6 +15,12 @@ const links = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { data: session, status } = useSession()
+
+  // Hide sidebar on login/setup pages or when not authenticated
+  if (pathname === '/login' || pathname === '/setup' || status !== 'authenticated') {
+    return null
+  }
 
   return (
     <aside className="w-64 min-h-screen bg-gray-900 text-white flex flex-col">
@@ -41,7 +48,19 @@ export function Sidebar() {
         })}
       </nav>
       <div className="p-4 border-t border-gray-700">
-        <p className="text-xs text-gray-500">Pexip Infinity Reporting</p>
+        <div className="flex items-center justify-between">
+          <div className="min-w-0">
+            <p className="text-sm text-gray-300 truncate">{session?.user?.name}</p>
+            <p className="text-xs text-gray-500">Signed in</p>
+          </div>
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-gray-800"
+            title="Sign out"
+          >
+            <LogOut size={16} />
+          </button>
+        </div>
       </div>
     </aside>
   )
