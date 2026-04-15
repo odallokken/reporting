@@ -42,6 +42,9 @@ export default function SettingsPage() {
           }
         }
 
+        const savedPassword = window.sessionStorage.getItem(`${SETTINGS_STORAGE_KEY}-pw`)
+        if (savedPassword) setPassword(savedPassword)
+
         if ('credentials' in navigator) {
           const credential = await (navigator.credentials as BrowserCredentialStore).get({
             password: true,
@@ -64,6 +67,7 @@ export default function SettingsPage() {
         SETTINGS_STORAGE_KEY,
         JSON.stringify({ baseUrl, username })
       )
+      window.sessionStorage.setItem(`${SETTINGS_STORAGE_KEY}-pw`, password)
 
       const PasswordCredentialCtor = (window as { PasswordCredential?: BrowserPasswordCredentialConstructor }).PasswordCredential
       if ('credentials' in navigator && PasswordCredentialCtor && password) {

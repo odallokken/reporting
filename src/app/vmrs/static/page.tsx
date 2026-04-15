@@ -29,6 +29,9 @@ function useCredentials() {
           }
         }
 
+        const savedPassword = window.sessionStorage.getItem(`${SETTINGS_STORAGE_KEY}-pw`)
+        if (savedPassword) setPassword(savedPassword)
+
         if ('credentials' in navigator) {
           const credential = await (navigator.credentials as BrowserCredentialStore).get({
             password: true,
