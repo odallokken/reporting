@@ -151,10 +151,10 @@ async function processSingleEvent(body: PexipEvent) {
       if (data.recent_quality && data.recent_quality.length > 0) {
         const latest = data.recent_quality[data.recent_quality.length - 1]
         if (latest.audio !== null && latest.audio !== undefined) {
-          qualityUpdate.audioQuality = qualityLabel(latest.audio)
+          qualityUpdate.audioQuality = qualityValue(latest.audio)
         }
         if (latest.video !== null && latest.video !== undefined) {
-          qualityUpdate.videoQuality = qualityLabel(latest.video)
+          qualityUpdate.videoQuality = qualityValue(latest.video)
         }
       }
 
@@ -241,7 +241,7 @@ async function storeMediaStreams(callUuid: string, streams: NonNullable<PexipEve
   }
 }
 
-function qualityLabel(value: number): string {
+function qualityValue(value: number): string {
   switch (value) {
     case 0: return '0_unknown'
     case 1: return '1_good'
