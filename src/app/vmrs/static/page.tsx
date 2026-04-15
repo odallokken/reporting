@@ -21,12 +21,13 @@ function useCredentials() {
         const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY)
         let savedUsername = ''
         if (raw) {
-          const saved = JSON.parse(raw) as { baseUrl?: string; username?: string }
+          const saved = JSON.parse(raw) as { baseUrl?: string; username?: string; password?: string }
           if (saved.baseUrl) setBaseUrl(saved.baseUrl)
           if (saved.username) {
             savedUsername = saved.username
             setUsername(saved.username)
           }
+          if (saved.password) setPassword(saved.password)
         }
 
         if ('credentials' in navigator) {
