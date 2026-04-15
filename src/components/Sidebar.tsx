@@ -17,8 +17,33 @@ export function Sidebar() {
   const pathname = usePathname()
   const { data: session, status } = useSession()
 
-  // Hide sidebar on login/setup pages or when not authenticated
-  if (pathname === '/login' || pathname === '/setup' || status !== 'authenticated') {
+  // Hide sidebar on login/setup pages
+  if (pathname === '/login' || pathname === '/setup') {
+    return null
+  }
+
+  // Show a loading skeleton while session is being resolved
+  if (status === 'loading') {
+    return (
+      <aside className="w-64 min-h-screen bg-gray-900 text-white flex flex-col">
+        <div className="p-6 border-b border-gray-700">
+          <h1 className="text-xl font-bold text-white">Pexip Reports</h1>
+          <p className="text-xs text-gray-400 mt-1">Analytics Dashboard</p>
+        </div>
+        <nav className="flex-1 p-4 space-y-1">
+          {links.map(({ href, label, icon: Icon }) => (
+            <div key={href} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-300">
+              <Icon size={18} />
+              {label}
+            </div>
+          ))}
+        </nav>
+      </aside>
+    )
+  }
+
+  // Hide sidebar when not authenticated (middleware will redirect to login)
+  if (status !== 'authenticated') {
     return null
   }
 
