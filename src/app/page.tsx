@@ -6,13 +6,61 @@ import { Activity, Users, Wifi } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/utils'
 import type { DashboardStats } from '@/lib/types'
 import Link from 'next/link'
+import { prisma } from '@/lib/prisma'
+import { format, subDays } from 'date-fns'
 
 async function getDashboardData(): Promise<DashboardStats> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-    const res = await fetch(`${baseUrl}/api/dashboard`, { cache: 'no-store' })
-    if (!res.ok) throw new Error('Failed to fetch')
-    return res.json()
+    const thirtyDaysAgo = subDays(new Date(), 30)
+
+    const [activeVmrs, activeConferences, activeParticipants, recentActivity, recentConferences] = await Promise.all([
+      prisma.vMR.count({ where: { lastUsedAt: { gte: thirtyDaysAgo } } }),
+      prisma.conference.count({
+        where: {
+          endTime: null,
+          participants: { some: { leaveTime: null } }
+        }
+      }),
+      prisma.participant.count({ where: { leaveTime: null, conference: { endTime: null } } }),
+      prisma.participant.findMany({
+        take: 10,
+        orderBy: { joinTime: 'desc' },
+        include: { conference: { include: { vmr: true } } }
+      }),
+      prisma.conference.findMany({
+        where: { startTime: { gte: thirtyDaysAgo } },
+        select: { startTime: true }
+      })
+    ])
+
+    const dayMap: Record<string, number> = {}
+    for (let i = 0; i < 30; i++) {
+      const d = subDays(new Date(), 29 - i)
+      dayMap[format(d, 'yyyy-MM-dd')] = 0
+    }
+    for (const conf of recentConferences) {
+      const key = format(new Date(conf.startTime), 'yyyy-MM-dd')
+      if (key in dayMap) dayMap[key]++
+    }
+    const usageByDay = Object.entries(dayMap).map(([date, count]) => ({ date, count }))
+
+    return {
+      activeVmrs,
+      activeConferences,
+      activeParticipants,
+      recentActivity: recentActivity.map(p => ({
+        id: p.id,
+        name: p.name,
+        joinTime: p.joinTime.toISOString(),
+        leaveTime: p.leaveTime?.toISOString() ?? null,
+        conference: {
+          id: p.conference.id,
+          vmr: { id: p.conference.vmr.id, name: p.conference.vmr.name },
+        },
+      })),
+      usageByDay,
+      topVmrs: []
+    }
   } catch {
     return {
       activeVmrs: 0,
