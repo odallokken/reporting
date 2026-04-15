@@ -200,11 +200,22 @@ export async function POST(request: NextRequest) {
       try {
         const vmrName = conf.name ?? 'Unknown'
         const startTime = conf.start_time ? new Date(conf.start_time) : null
-        const vmr = await prisma.vMR.upsert({
-          where: { name: vmrName },
-          update: startTime ? { lastUsedAt: startTime } : {},
-          create: { name: vmrName, lastUsedAt: startTime }
-        })
+        const existingVmr = await prisma.vMR.findUnique({ where: { name: vmrName } })
+        let vmr
+        if (existingVmr) {
+          if (startTime && (!existingVmr.lastUsedAt || startTime > existingVmr.lastUsedAt)) {
+            vmr = await prisma.vMR.update({
+              where: { name: vmrName },
+              data: { lastUsedAt: startTime }
+            })
+          } else {
+            vmr = existingVmr
+          }
+        } else {
+          vmr = await prisma.vMR.create({
+            data: { name: vmrName, lastUsedAt: startTime }
+          })
+        }
 
         const conference = await prisma.conference.create({
           data: {

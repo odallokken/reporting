@@ -138,8 +138,12 @@ export async function POST(request: NextRequest) {
       where: { name: { in: vmrNames } },
       select: {
         name: true,
-        lastUsedAt: true,
-        _count: { select: { conferences: true } }
+        _count: { select: { conferences: true } },
+        conferences: {
+          select: { startTime: true },
+          orderBy: { startTime: 'desc' },
+          take: 1,
+        }
       }
     })
     const localMap = new Map(localVmrs.map(v => [v.name, v]))
@@ -155,7 +159,7 @@ export async function POST(request: NextRequest) {
           allow_guests: v.allow_guests ?? false,
           tag: v.tag ?? null,
           service_type: v.service_type ?? null,
-          lastUsedAt: local?.lastUsedAt?.toISOString() ?? null,
+          lastUsedAt: local?.conferences[0]?.startTime?.toISOString() ?? null,
           totalConferences: local?._count.conferences ?? 0,
         }
       }),

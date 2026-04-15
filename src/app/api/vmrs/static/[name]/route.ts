@@ -41,7 +41,7 @@ export async function GET(
 
     return NextResponse.json({
       name: vmr.name,
-      lastUsedAt: vmr.lastUsedAt?.toISOString() ?? null,
+      lastUsedAt: vmr.conferences[0]?.startTime?.toISOString() ?? null,
       totalConferences,
       totalParticipants,
       avgParticipants,
