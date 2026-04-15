@@ -386,6 +386,7 @@ All variables are configured in the `.env` file at the root of the project.
 |----------|---------|-------------|
 | `DOMAIN` | `localhost` | The public domain for HTTPS certificates (used by Caddy). Set this to your domain before deploying. |
 | `DATABASE_URL` | `file:./dev.db` | Path to the SQLite database file |
+| `AUTH_SECRET` | Auto-generated | Secret used to encrypt session tokens. Auto-generated and persisted on first start if not set. |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` | Base URL of the app (used by server components) |
 
 ### API Endpoints
