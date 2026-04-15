@@ -1,9 +1,10 @@
 import { StatsCard } from '@/components/StatsCard'
 import { ActivityLineChart } from '@/components/charts/ActivityLineChart'
 import { TopVMRsBarChart } from '@/components/charts/TopVMRsBarChart'
-import { Video, Activity, AlertTriangle, BarChart2 } from 'lucide-react'
+import { Video, Activity, Users, BarChart2, Wifi } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/utils'
 import type { DashboardStats } from '@/lib/types'
+import Link from 'next/link'
 
 async function getDashboardData(): Promise<DashboardStats> {
   try {
@@ -15,6 +16,7 @@ async function getDashboardData(): Promise<DashboardStats> {
     return {
       totalVmrs: 0, activeVmrs: 0, staleVmrs: 0,
       totalConferences: 0, totalParticipants: 0,
+      activeConferences: 0, activeParticipants: 0,
       recentActivity: [], usageByDay: [], topVmrs: []
     }
   }
@@ -30,11 +32,12 @@ export default async function DashboardPage() {
         <p className="text-gray-500 mt-1">Overview of your Pexip Infinity environment</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatsCard title="Total VMRs" value={data.totalVmrs} icon={Video} color="blue" />
-        <StatsCard title="Active VMRs" value={data.activeVmrs} subtitle="Used in last 30 days" icon={Activity} color="green" />
-        <StatsCard title="Stale VMRs" value={data.staleVmrs} subtitle="Not used in 30+ days" icon={AlertTriangle} color="yellow" />
-        <StatsCard title="Total Conferences" value={data.totalConferences} icon={BarChart2} color="purple" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <StatsCard title="Active Conferences" value={data.activeConferences} subtitle="Right now" icon={Wifi} color="green" href="/realtime" />
+        <StatsCard title="Active Participants" value={data.activeParticipants} subtitle="Right now" icon={Users} color="blue" href="/realtime" />
+        <StatsCard title="Total VMRs" value={data.totalVmrs} icon={Video} color="purple" href="/vmrs/static" />
+        <StatsCard title="Total Conferences" value={data.totalConferences} subtitle="All time" icon={BarChart2} color="yellow" href="/logs" />
+        <StatsCard title="Active VMRs" value={data.activeVmrs} subtitle="Used in last 30 days" icon={Activity} color="green" href="/vmrs/static" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -49,7 +52,12 @@ export default async function DashboardPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+          <Link href="/logs" className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
+            View all →
+          </Link>
+        </div>
         {data.recentActivity.length === 0 ? (
           <p className="text-gray-500 text-sm">No recent activity</p>
         ) : (

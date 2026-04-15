@@ -6,11 +6,13 @@ export async function GET() {
   try {
     const thirtyDaysAgo = subDays(new Date(), 30)
 
-    const [totalVmrs, activeVmrs, totalConferences, totalParticipants, recentActivity, recentConferences] = await Promise.all([
+    const [totalVmrs, activeVmrs, totalConferences, totalParticipants, activeConferences, activeParticipants, recentActivity, recentConferences] = await Promise.all([
       prisma.vMR.count(),
       prisma.vMR.count({ where: { lastUsedAt: { gte: thirtyDaysAgo } } }),
       prisma.conference.count(),
       prisma.participant.count(),
+      prisma.conference.count({ where: { endTime: null } }),
+      prisma.participant.count({ where: { leaveTime: null, conference: { endTime: null } } }),
       prisma.participant.findMany({
         take: 10,
         orderBy: { joinTime: 'desc' },
@@ -53,6 +55,8 @@ export async function GET() {
       staleVmrs: totalVmrs - activeVmrs,
       totalConferences,
       totalParticipants,
+      activeConferences,
+      activeParticipants,
       recentActivity,
       usageByDay,
       topVmrs

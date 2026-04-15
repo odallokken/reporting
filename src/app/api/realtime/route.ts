@@ -13,6 +13,10 @@ export async function GET() {
       include: {
         conference: {
           include: { vmr: true }
+        },
+        qualityWindows: {
+          orderBy: { timestamp: 'desc' },
+          take: 1,
         }
       }
     })
@@ -27,6 +31,24 @@ export async function GET() {
         callUuid: e.callUuid,
         protocol: e.protocol,
         role: e.role,
+        callQuality: e.callQuality,
+        audioQuality: e.audioQuality,
+        videoQuality: e.videoQuality,
+        rxBandwidth: e.rxBandwidth,
+        txBandwidth: e.txBandwidth,
+        encryption: e.encryption,
+        mediaNode: e.mediaNode,
+        latestQuality: e.qualityWindows[0] ? {
+          overallQuality: e.qualityWindows[0].overallQuality,
+          audioQuality: e.qualityWindows[0].audioQuality,
+          videoQuality: e.qualityWindows[0].videoQuality,
+          presentationQuality: e.qualityWindows[0].presentationQuality,
+          rxPacketsLost: e.qualityWindows[0].rxPacketsLost,
+          rxPacketsRecv: e.qualityWindows[0].rxPacketsRecv,
+          txPacketsLost: e.qualityWindows[0].txPacketsLost,
+          txPacketsSent: e.qualityWindows[0].txPacketsSent,
+          timestamp: e.qualityWindows[0].timestamp.toISOString(),
+        } : null,
         conference: {
           id: e.conference.id,
           vmr: { id: e.conference.vmr.id, name: e.conference.vmr.name }

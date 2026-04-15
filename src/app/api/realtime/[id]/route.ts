@@ -17,6 +17,13 @@ export async function GET(
       include: {
         conference: {
           include: { vmr: true }
+        },
+        mediaStreams: {
+          orderBy: { createdAt: 'desc' }
+        },
+        qualityWindows: {
+          orderBy: { timestamp: 'desc' },
+          take: 50,
         }
       }
     })
@@ -46,6 +53,47 @@ export async function GET(
       encryption: participant.encryption,
       isMuted: participant.isMuted,
       isPresenting: participant.isPresenting,
+      disconnectReason: participant.disconnectReason,
+      duration: participant.duration,
+      callQuality: participant.callQuality,
+      audioQuality: participant.audioQuality,
+      videoQuality: participant.videoQuality,
+      mediaStreams: participant.mediaStreams.map(ms => ({
+        id: ms.id,
+        streamId: ms.streamId,
+        streamType: ms.streamType,
+        rxBitrate: ms.rxBitrate,
+        rxCodec: ms.rxCodec,
+        rxFps: ms.rxFps,
+        rxPacketLoss: ms.rxPacketLoss,
+        rxPacketsLost: ms.rxPacketsLost,
+        rxPacketsRecv: ms.rxPacketsRecv,
+        rxResolution: ms.rxResolution,
+        txBitrate: ms.txBitrate,
+        txCodec: ms.txCodec,
+        txFps: ms.txFps,
+        txPacketLoss: ms.txPacketLoss,
+        txPacketsLost: ms.txPacketsLost,
+        txPacketsSent: ms.txPacketsSent,
+        txResolution: ms.txResolution,
+        startTime: ms.startTime?.toISOString() ?? null,
+        endTime: ms.endTime?.toISOString() ?? null,
+        node: ms.node,
+      })),
+      qualityWindows: participant.qualityWindows.map(qw => ({
+        id: qw.id,
+        qualityWas: qw.qualityWas,
+        qualityNow: qw.qualityNow,
+        audioQuality: qw.audioQuality,
+        videoQuality: qw.videoQuality,
+        presentationQuality: qw.presentationQuality,
+        overallQuality: qw.overallQuality,
+        rxPacketsLost: qw.rxPacketsLost,
+        rxPacketsRecv: qw.rxPacketsRecv,
+        txPacketsLost: qw.txPacketsLost,
+        txPacketsSent: qw.txPacketsSent,
+        timestamp: qw.timestamp.toISOString(),
+      })),
       conference: {
         id: participant.conference.id,
         startTime: participant.conference.startTime.toISOString(),
