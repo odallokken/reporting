@@ -10,8 +10,7 @@ if [ -z "$AUTH_SECRET" ]; then
     AUTH_SECRET=$(cat "$SECRET_FILE")
   else
     AUTH_SECRET=$(openssl rand -base64 33)
-    echo "$AUTH_SECRET" > "$SECRET_FILE"
-    chmod 600 "$SECRET_FILE"
+    (umask 077; echo "$AUTH_SECRET" > "$SECRET_FILE")
   fi
   export AUTH_SECRET
 fi
