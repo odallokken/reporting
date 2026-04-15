@@ -4,6 +4,7 @@ services:
     restart: unless-stopped
     environment:
       - DATABASE_URL=file:/app/prisma/data/reporting.db
+      - AUTH_SECRET=${AUTH_SECRET:-}
     volumes:
       - app-data:/app/prisma/data
     expose:
