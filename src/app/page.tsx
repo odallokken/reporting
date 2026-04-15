@@ -1,7 +1,7 @@
 import { StatsCard } from '@/components/StatsCard'
 import { StaticVmrCountCard } from '@/components/StaticVmrCountCard'
 import { ActivityLineChart } from '@/components/charts/ActivityLineChart'
-import { TopVMRsBarChart } from '@/components/charts/TopVMRsBarChart'
+import { TopStaticVMRsBarChart } from '@/components/charts/TopStaticVMRsBarChart'
 import { Activity, Users, Wifi } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/utils'
 import type { DashboardStats } from '@/lib/types'
@@ -46,7 +46,7 @@ export default async function DashboardPage() {
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Top 5 Most Active VMRs</h2>
-          <TopVMRsBarChart data={data.topVmrs} />
+          <TopStaticVMRsBarChart />
         </div>
       </div>
 

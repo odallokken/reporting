@@ -37,27 +37,13 @@ export async function GET() {
     }
     const usageByDay = Object.entries(dayMap).map(([date, count]) => ({ date, count }))
 
-    const vmrConferenceCounts = await prisma.conference.groupBy({
-      by: ['vmrId'],
-      _count: { id: true },
-      orderBy: { _count: { id: 'desc' } },
-      take: 5
-    })
-    const vmrIds = vmrConferenceCounts.map(v => v.vmrId)
-    const vmrs = await prisma.vMR.findMany({ where: { id: { in: vmrIds } } })
-    const vmrMap = Object.fromEntries(vmrs.map(v => [v.id, v.name]))
-    const topVmrs = vmrConferenceCounts.map(v => ({
-      name: vmrMap[v.vmrId] ?? `VMR ${v.vmrId}`,
-      count: v._count.id
-    }))
-
     return NextResponse.json({
       activeVmrs,
       activeConferences,
       activeParticipants,
       recentActivity,
       usageByDay,
-      topVmrs
+      topVmrs: []
     })
   } catch (error) {
     console.error('Dashboard error:', error)
