@@ -28,14 +28,14 @@ model Conference {
 }
 
 model Participant {
-  id               Int        @id @default(autoincrement())
+  id               Int              @id @default(autoincrement())
   conferenceId     Int
-  conference       Conference @relation(fields: [conferenceId], references: [id])
+  conference       Conference       @relation(fields: [conferenceId], references: [id])
   name             String?
   identity         String?
   joinTime         DateTime
   leaveTime        DateTime?
-  callUuid         String?    @unique
+  callUuid         String?          @unique
   protocol         String?
   role             String?
   sourceAlias      String?
@@ -50,7 +50,59 @@ model Participant {
   encryption       String?
   isMuted          Boolean?
   isPresenting     Boolean?
-  createdAt        DateTime   @default(now())
+  disconnectReason String?
+  duration         Float?
+  callQuality      String?          // current overall quality: 1_good, 2_ok, 3_bad, 4_terrible
+  audioQuality     String?          // current audio quality
+  videoQuality     String?          // current video quality
+  mediaStreams      MediaStream[]
+  qualityWindows   QualityWindow[]
+  createdAt        DateTime         @default(now())
+}
+
+model MediaStream {
+  id              Int         @id @default(autoincrement())
+  participantId   Int
+  participant     Participant @relation(fields: [participantId], references: [id])
+  streamId        String?
+  streamType      String      // audio, video, presentation
+  rxBitrate       Int?
+  rxCodec         String?
+  rxFps           Float?
+  rxPacketLoss    Float?
+  rxPacketsLost   Int?
+  rxPacketsRecv   Int?
+  rxResolution    String?
+  txBitrate       Int?
+  txCodec         String?
+  txFps           Float?
+  txPacketLoss    Float?
+  txPacketsLost   Int?
+  txPacketsSent   Int?
+  txResolution    String?
+  startTime       DateTime?
+  endTime         DateTime?
+  node            String?
+  createdAt       DateTime    @default(now())
+}
+
+model QualityWindow {
+  id              Int         @id @default(autoincrement())
+  participantId   Int
+  participant     Participant @relation(fields: [participantId], references: [id])
+  qualityWas      String?     // e.g. 1_good
+  qualityNow      String?     // e.g. 3_bad
+  audioQuality    Int?        // 0=Unknown, 1=Good, 2=OK, 3=Bad, 4=Terrible
+  videoQuality    Int?
+  presentationQuality Int?
+  overallQuality  Int?
+  // Packet loss snapshot
+  rxPacketsLost   Int?
+  rxPacketsRecv   Int?
+  txPacketsLost   Int?
+  txPacketsSent   Int?
+  timestamp       DateTime
+  createdAt       DateTime    @default(now())
 }
 
 model Log {

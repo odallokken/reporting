@@ -5,6 +5,44 @@ import Link from 'next/link'
 import { ArrowLeft, ArrowDown, ArrowUp, Clock, Globe, Lock, Monitor, Phone, Shield, User } from 'lucide-react'
 import { formatDateTime, formatDuration } from '@/lib/utils'
 
+interface MediaStreamData {
+  id: number
+  streamId: string | null
+  streamType: string
+  rxBitrate: number | null
+  rxCodec: string | null
+  rxFps: number | null
+  rxPacketLoss: number | null
+  rxPacketsLost: number | null
+  rxPacketsRecv: number | null
+  rxResolution: string | null
+  txBitrate: number | null
+  txCodec: string | null
+  txFps: number | null
+  txPacketLoss: number | null
+  txPacketsLost: number | null
+  txPacketsSent: number | null
+  txResolution: string | null
+  startTime: string | null
+  endTime: string | null
+  node: string | null
+}
+
+interface QualityWindowData {
+  id: number
+  qualityWas: string | null
+  qualityNow: string | null
+  audioQuality: number | null
+  videoQuality: number | null
+  presentationQuality: number | null
+  overallQuality: number | null
+  rxPacketsLost: number | null
+  rxPacketsRecv: number | null
+  txPacketsLost: number | null
+  txPacketsSent: number | null
+  timestamp: string
+}
+
 interface ParticipantDetail {
   id: number
   name: string | null
@@ -26,6 +64,13 @@ interface ParticipantDetail {
   encryption: string | null
   isMuted: boolean | null
   isPresenting: boolean | null
+  disconnectReason: string | null
+  duration: number | null
+  callQuality: string | null
+  audioQuality: string | null
+  videoQuality: string | null
+  mediaStreams: MediaStreamData[]
+  qualityWindows: QualityWindowData[]
   conference: {
     id: number
     startTime: string
@@ -69,6 +114,70 @@ function DetailRow({ label, value, icon: Icon }: { label: string; value: string 
       </div>
     </div>
   )
+}
+
+function qualityLabel(quality: string | null | undefined): string {
+  if (!quality) return 'N/A'
+  if (quality.includes('good')) return 'Good'
+  if (quality.includes('ok')) return 'OK'
+  if (quality.includes('bad')) return 'Bad'
+  if (quality.includes('terrible')) return 'Terrible'
+  if (quality.includes('unknown')) return 'Unknown'
+  return quality
+}
+
+function qualityColor(quality: string | null | undefined): string {
+  if (!quality) return 'bg-gray-100 text-gray-600'
+  if (quality.includes('good')) return 'bg-green-100 text-green-700'
+  if (quality.includes('ok')) return 'bg-yellow-100 text-yellow-700'
+  if (quality.includes('bad')) return 'bg-orange-100 text-orange-700'
+  if (quality.includes('terrible')) return 'bg-red-100 text-red-700'
+  return 'bg-gray-100 text-gray-600'
+}
+
+function qualityDot(quality: string | null | undefined): string {
+  if (!quality) return 'bg-gray-300'
+  if (quality.includes('good')) return 'bg-green-500'
+  if (quality.includes('ok')) return 'bg-yellow-500'
+  if (quality.includes('bad')) return 'bg-orange-500'
+  if (quality.includes('terrible')) return 'bg-red-500'
+  return 'bg-gray-400'
+}
+
+function qualityNumLabel(num: number | null | undefined): string {
+  if (num === null || num === undefined) return '-'
+  switch (num) {
+    case 1: return 'Good'
+    case 2: return 'OK'
+    case 3: return 'Bad'
+    case 4: return 'Terrible'
+    default: return 'Unknown'
+  }
+}
+
+function qualityNumDot(num: number | null | undefined): string {
+  if (num === null || num === undefined) return 'bg-gray-300'
+  switch (num) {
+    case 1: return 'bg-green-500'
+    case 2: return 'bg-yellow-400'
+    case 3: return 'bg-orange-500'
+    case 4: return 'bg-red-500'
+    default: return 'bg-gray-400'
+  }
+}
+
+function packetLossPercent(lost: number | null | undefined, total: number | null | undefined): string {
+  if (!lost || !total || total === 0) return '0%'
+  return ((lost / total) * 100).toFixed(2) + '%'
+}
+
+function streamTypeIcon(type: string): string {
+  switch (type) {
+    case 'audio': return '🔊'
+    case 'video': return '📹'
+    case 'presentation': return '🖥️'
+    default: return '📡'
+  }
 }
 
 export default function ParticipantDetailPage() {
@@ -131,6 +240,12 @@ export default function ParticipantDetailPage() {
               <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
               {isActive ? 'Connected' : 'Disconnected'}
             </span>
+            {participant.callQuality && (
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${qualityColor(participant.callQuality)}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${qualityDot(participant.callQuality)}`} />
+                Quality: {qualityLabel(participant.callQuality)}
+              </span>
+            )}
             <Link
               href={`/vmrs/${participant.conference.vmr.id}`}
               className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
@@ -154,7 +269,9 @@ export default function ParticipantDetailPage() {
             ) : (
               <>
                 <span className="font-mono text-lg text-gray-700">
-                  {formatDuration(participant.joinTime, participant.leaveTime)}
+                  {participant.duration != null
+                    ? `${Math.floor(participant.duration / 3600)}h ${Math.floor((participant.duration % 3600) / 60)}m ${Math.floor(participant.duration % 60)}s`
+                    : formatDuration(participant.joinTime, participant.leaveTime)}
                 </span>
                 <p className="text-xs text-gray-500 mt-2">Total duration</p>
               </>
@@ -163,6 +280,9 @@ export default function ParticipantDetailPage() {
           <div className="mt-4 space-y-0">
             <DetailRow label="Joined" value={formatDateTime(participant.joinTime)} icon={Clock} />
             <DetailRow label="Left" value={participant.leaveTime ? formatDateTime(participant.leaveTime) : 'Still connected'} icon={Clock} />
+            {participant.disconnectReason && (
+              <DetailRow label="Disconnect Reason" value={participant.disconnectReason} />
+            )}
           </div>
         </div>
 
@@ -177,6 +297,65 @@ export default function ParticipantDetailPage() {
             <DetailRow label="Remote Address" value={participant.remoteAddress} icon={Globe} />
             <DetailRow label="Encryption" value={participant.encryption} icon={Lock} />
           </div>
+        </div>
+
+        {/* Call Quality Overview */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Call Quality</h2>
+          {!participant.callQuality && participant.qualityWindows.length === 0 ? (
+            <p className="text-sm text-gray-400 py-4 text-center">No quality data available yet</p>
+          ) : (
+            <>
+              {/* Current quality badges */}
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-gray-500 mb-1">Audio</p>
+                  <span className={`inline-flex items-center gap-1 text-sm font-medium ${qualityColor(participant.audioQuality)} px-2 py-0.5 rounded-full`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${qualityDot(participant.audioQuality)}`} />
+                    {qualityLabel(participant.audioQuality)}
+                  </span>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-gray-500 mb-1">Video</p>
+                  <span className={`inline-flex items-center gap-1 text-sm font-medium ${qualityColor(participant.videoQuality)} px-2 py-0.5 rounded-full`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${qualityDot(participant.videoQuality)}`} />
+                    {qualityLabel(participant.videoQuality)}
+                  </span>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-gray-500 mb-1">Overall</p>
+                  <span className={`inline-flex items-center gap-1 text-sm font-medium ${qualityColor(participant.callQuality)} px-2 py-0.5 rounded-full`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${qualityDot(participant.callQuality)}`} />
+                    {qualityLabel(participant.callQuality)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Latest packet loss */}
+              {participant.qualityWindows.length > 0 && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-blue-50 rounded-lg p-3">
+                    <p className="text-xs text-blue-600 font-medium mb-1">RX Packet Loss</p>
+                    <p className="text-lg font-bold text-blue-700">
+                      {packetLossPercent(participant.qualityWindows[0].rxPacketsLost, (participant.qualityWindows[0].rxPacketsLost ?? 0) + (participant.qualityWindows[0].rxPacketsRecv ?? 0))}
+                    </p>
+                    <p className="text-xs text-blue-500">
+                      {participant.qualityWindows[0].rxPacketsLost ?? 0} lost / {(participant.qualityWindows[0].rxPacketsLost ?? 0) + (participant.qualityWindows[0].rxPacketsRecv ?? 0)} total
+                    </p>
+                  </div>
+                  <div className="bg-green-50 rounded-lg p-3">
+                    <p className="text-xs text-green-600 font-medium mb-1">TX Packet Loss</p>
+                    <p className="text-lg font-bold text-green-700">
+                      {packetLossPercent(participant.qualityWindows[0].txPacketsLost, (participant.qualityWindows[0].txPacketsLost ?? 0) + (participant.qualityWindows[0].txPacketsSent ?? 0))}
+                    </p>
+                    <p className="text-xs text-green-500">
+                      {participant.qualityWindows[0].txPacketsLost ?? 0} lost / {(participant.qualityWindows[0].txPacketsLost ?? 0) + (participant.qualityWindows[0].txPacketsSent ?? 0)} total
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Bandwidth & Media */}
@@ -277,6 +456,119 @@ export default function ParticipantDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Media Streams - full width */}
+      {participant.mediaStreams.length > 0 && (
+        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Media Streams</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {participant.mediaStreams.map(ms => (
+              <div key={ms.id} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">{streamTypeIcon(ms.streamType)}</span>
+                  <span className="text-sm font-semibold text-gray-900 capitalize">{ms.streamType}</span>
+                  {ms.streamId && <span className="text-xs text-gray-400">#{ms.streamId}</span>}
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <p className="text-gray-500 font-medium">Receive</p>
+                    {ms.rxCodec && <p className="text-gray-700">Codec: {ms.rxCodec}</p>}
+                    {ms.rxResolution && <p className="text-gray-700">Res: {ms.rxResolution}</p>}
+                    {ms.rxFps != null && <p className="text-gray-700">FPS: {ms.rxFps.toFixed(1)}</p>}
+                    {ms.rxBitrate != null && <p className="text-gray-700">Bitrate: {ms.rxBitrate} kbps</p>}
+                    <p className="text-gray-700">
+                      Loss: {ms.rxPacketLoss != null ? `${ms.rxPacketLoss.toFixed(2)}%` : '-'}
+                      {ms.rxPacketsLost != null && <span className="text-gray-400"> ({ms.rxPacketsLost} pkts)</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 font-medium">Transmit</p>
+                    {ms.txCodec && <p className="text-gray-700">Codec: {ms.txCodec}</p>}
+                    {ms.txResolution && <p className="text-gray-700">Res: {ms.txResolution}</p>}
+                    {ms.txFps != null && <p className="text-gray-700">FPS: {ms.txFps.toFixed(1)}</p>}
+                    {ms.txBitrate != null && <p className="text-gray-700">Bitrate: {ms.txBitrate} kbps</p>}
+                    <p className="text-gray-700">
+                      Loss: {ms.txPacketLoss != null ? `${ms.txPacketLoss.toFixed(2)}%` : '-'}
+                      {ms.txPacketsLost != null && <span className="text-gray-400"> ({ms.txPacketsLost} pkts)</span>}
+                    </p>
+                  </div>
+                </div>
+                {ms.node && <p className="text-xs text-gray-400 mt-2">Node: {ms.node}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quality History */}
+      {participant.qualityWindows.length > 0 && (
+        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Quality History</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Time</th>
+                  <th className="text-left py-2 px-3 text-gray-500 font-medium">Transition</th>
+                  <th className="text-center py-2 px-3 text-gray-500 font-medium">Audio</th>
+                  <th className="text-center py-2 px-3 text-gray-500 font-medium">Video</th>
+                  <th className="text-center py-2 px-3 text-gray-500 font-medium">Presentation</th>
+                  <th className="text-center py-2 px-3 text-gray-500 font-medium">Overall</th>
+                  <th className="text-right py-2 px-3 text-gray-500 font-medium">RX Loss</th>
+                  <th className="text-right py-2 px-3 text-gray-500 font-medium">TX Loss</th>
+                </tr>
+              </thead>
+              <tbody>
+                {participant.qualityWindows.map(qw => (
+                  <tr key={qw.id} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="py-2 px-3 text-gray-700 whitespace-nowrap">{formatDateTime(qw.timestamp)}</td>
+                    <td className="py-2 px-3">
+                      {qw.qualityWas && qw.qualityNow ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span className={`w-1.5 h-1.5 rounded-full ${qualityDot(qw.qualityWas)}`} />
+                          <span className="text-gray-400">→</span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${qualityDot(qw.qualityNow)}`} />
+                          <span className="text-gray-600">{qualityLabel(qw.qualityNow)}</span>
+                        </span>
+                      ) : '-'}
+                    </td>
+                    <td className="py-2 px-3 text-center">
+                      <span className={`inline-flex items-center gap-1 ${qualityNumDot(qw.audioQuality) !== 'bg-gray-300' ? '' : 'text-gray-400'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${qualityNumDot(qw.audioQuality)}`} />
+                        {qualityNumLabel(qw.audioQuality)}
+                      </span>
+                    </td>
+                    <td className="py-2 px-3 text-center">
+                      <span className={`inline-flex items-center gap-1 ${qualityNumDot(qw.videoQuality) !== 'bg-gray-300' ? '' : 'text-gray-400'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${qualityNumDot(qw.videoQuality)}`} />
+                        {qualityNumLabel(qw.videoQuality)}
+                      </span>
+                    </td>
+                    <td className="py-2 px-3 text-center">
+                      <span className={`inline-flex items-center gap-1 ${qualityNumDot(qw.presentationQuality) !== 'bg-gray-300' ? '' : 'text-gray-400'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${qualityNumDot(qw.presentationQuality)}`} />
+                        {qualityNumLabel(qw.presentationQuality)}
+                      </span>
+                    </td>
+                    <td className="py-2 px-3 text-center">
+                      <span className={`inline-flex items-center gap-1 ${qualityNumDot(qw.overallQuality) !== 'bg-gray-300' ? '' : 'text-gray-400'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${qualityNumDot(qw.overallQuality)}`} />
+                        {qualityNumLabel(qw.overallQuality)}
+                      </span>
+                    </td>
+                    <td className="py-2 px-3 text-right text-gray-700">
+                      {packetLossPercent(qw.rxPacketsLost, (qw.rxPacketsLost ?? 0) + (qw.rxPacketsRecv ?? 0))}
+                    </td>
+                    <td className="py-2 px-3 text-right text-gray-700">
+                      {packetLossPercent(qw.txPacketsLost, (qw.txPacketsLost ?? 0) + (qw.txPacketsSent ?? 0))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
