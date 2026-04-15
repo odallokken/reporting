@@ -1,6 +1,8 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
-import { Search, AlertCircle } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import { Search, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react'
+import { formatRelativeTime } from '@/lib/utils'
 import type { StaticVMR } from '@/lib/types'
 
 const SETTINGS_STORAGE_KEY = 'pexip-basic-import-settings-v1'
@@ -53,13 +55,18 @@ function useCredentials() {
   return { baseUrl, username, password, loaded }
 }
 
+type SortKey = 'name' | 'lastUsedAt' | 'totalConferences' | 'service_type' | 'tag'
+
 export default function StaticVMRsPage() {
+  const router = useRouter()
   const { baseUrl, username, password, loaded } = useCredentials()
   const [vmrs, setVmrs] = useState<StaticVMR[]>([])
   const [total, setTotal] = useState(0)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<SortKey>('name')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
   const fetchVmrs = useCallback(async () => {
     if (!baseUrl || !username || !password) return
@@ -93,7 +100,52 @@ export default function StaticVMRsPage() {
     }
   }, [loaded, baseUrl, username, password, fetchVmrs])
 
+  const handleSort = (col: SortKey) => {
+    if (sortBy === col) setSortOrder(o => o === 'asc' ? 'desc' : 'asc')
+    else { setSortBy(col); setSortOrder(col === 'totalConferences' || col === 'lastUsedAt' ? 'desc' : 'asc') }
+  }
+
+  const sortedVmrs = useMemo(() => {
+    const sorted = [...vmrs].sort((a, b) => {
+      const dir = sortOrder === 'asc' ? 1 : -1
+      switch (sortBy) {
+        case 'name':
+          return dir * a.name.localeCompare(b.name)
+        case 'lastUsedAt': {
+          if (!a.lastUsedAt && !b.lastUsedAt) return 0
+          if (!a.lastUsedAt) return 1
+          if (!b.lastUsedAt) return -1
+          return dir * (new Date(a.lastUsedAt).getTime() - new Date(b.lastUsedAt).getTime())
+        }
+        case 'totalConferences':
+          return dir * (a.totalConferences - b.totalConferences)
+        case 'service_type':
+          return dir * (a.service_type ?? '').localeCompare(b.service_type ?? '')
+        case 'tag':
+          return dir * (a.tag ?? '').localeCompare(b.tag ?? '')
+        default:
+          return 0
+      }
+    })
+    return sorted
+  }, [vmrs, sortBy, sortOrder])
+
+  const SortIcon = ({ col }: { col: SortKey }) => {
+    if (sortBy !== col) return null
+    return sortOrder === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+  }
+
   const missingCredentials = loaded && (!baseUrl || !username || !password)
+
+  const columns: { key: SortKey | 'description' | 'allow_guests'; label: string; sortable: boolean }[] = [
+    { key: 'name', label: 'Name', sortable: true },
+    { key: 'description', label: 'Description', sortable: false },
+    { key: 'service_type', label: 'Service Type', sortable: true },
+    { key: 'totalConferences', label: 'Total Calls', sortable: true },
+    { key: 'lastUsedAt', label: 'Last Used', sortable: true },
+    { key: 'allow_guests', label: 'Guests', sortable: false },
+    { key: 'tag', label: 'Tag', sortable: true },
+  ]
 
   return (
     <div className="p-8">
@@ -145,24 +197,37 @@ export default function StaticVMRsPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guests</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tag</th>
+                  {columns.map(col => (
+                    <th
+                      key={col.key}
+                      onClick={() => col.sortable && handleSort(col.key as SortKey)}
+                      className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${col.sortable ? 'cursor-pointer hover:text-gray-700 select-none' : ''}`}
+                    >
+                      <span className="flex items-center gap-1">
+                        {col.label}
+                        {col.sortable && <SortIcon col={col.key as SortKey} />}
+                      </span>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
-                  <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500">Loading...</td></tr>
-                ) : vmrs.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500">No static VMRs found</td></tr>
+                  <tr><td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500">Loading...</td></tr>
+                ) : sortedVmrs.length === 0 ? (
+                  <tr><td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500">No static VMRs found</td></tr>
                 ) : (
-                  vmrs.map(vmr => (
-                    <tr key={vmr.id} className="hover:bg-gray-50 transition-colors">
+                  sortedVmrs.map(vmr => (
+                    <tr
+                      key={vmr.id}
+                      onClick={() => router.push(`/vmrs/static/${encodeURIComponent(vmr.name)}`)}
+                      className="cursor-pointer hover:bg-gray-50 transition-colors"
+                    >
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">{vmr.name}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{vmr.description || '—'}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{vmr.service_type || '—'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{vmr.totalConferences}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{formatRelativeTime(vmr.lastUsedAt)}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${vmr.allow_guests ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                           {vmr.allow_guests ? 'Allowed' : 'Disabled'}
