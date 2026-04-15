@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as https from 'https'
+import { prisma } from '@/lib/prisma'
 
 interface PexipConference {
   id: number
@@ -131,16 +132,33 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Cross-reference with local database to get lastUsedAt and totalConferences
+    const vmrNames = vmrs.map(v => v.name)
+    const localVmrs = await prisma.vMR.findMany({
+      where: { name: { in: vmrNames } },
+      select: {
+        name: true,
+        lastUsedAt: true,
+        _count: { select: { conferences: true } }
+      }
+    })
+    const localMap = new Map(localVmrs.map(v => [v.name, v]))
+
     return NextResponse.json({
-      vmrs: vmrs.map(v => ({
-        id: v.id,
-        name: v.name,
-        description: v.description ?? '',
-        aliases: v.aliases ?? [],
-        allow_guests: v.allow_guests ?? false,
-        tag: v.tag ?? null,
-        service_type: v.service_type ?? null,
-      })),
+      vmrs: vmrs.map(v => {
+        const local = localMap.get(v.name)
+        return {
+          id: v.id,
+          name: v.name,
+          description: v.description ?? '',
+          aliases: v.aliases ?? [],
+          allow_guests: v.allow_guests ?? false,
+          tag: v.tag ?? null,
+          service_type: v.service_type ?? null,
+          lastUsedAt: local?.lastUsedAt?.toISOString() ?? null,
+          totalConferences: local?._count.conferences ?? 0,
+        }
+      }),
       total: vmrs.length
     })
   } catch (error) {

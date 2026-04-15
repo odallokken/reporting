@@ -63,6 +63,8 @@ export interface StaticVMR {
   allow_guests: boolean
   tag: string | null
   service_type: string | null
+  lastUsedAt: string | null
+  totalConferences: number
 }
 
 export interface PexipEventData {
