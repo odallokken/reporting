@@ -39,12 +39,12 @@ interface RealtimeEvent {
 }
 
 function qualityColor(quality: string | null | undefined): string {
-  if (!quality) return 'bg-gray-200 text-gray-600'
-  if (quality.includes('good')) return 'bg-green-100 text-green-700'
-  if (quality.includes('ok')) return 'bg-yellow-100 text-yellow-700'
-  if (quality.includes('bad')) return 'bg-orange-100 text-orange-700'
-  if (quality.includes('terrible')) return 'bg-red-100 text-red-700'
-  return 'bg-gray-100 text-gray-600'
+  if (!quality) return 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+  if (quality.includes('good')) return 'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400'
+  if (quality.includes('ok')) return 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400'
+  if (quality.includes('bad')) return 'bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400'
+  if (quality.includes('terrible')) return 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400'
+  return 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
 }
 
 function qualityDot(quality: string | null | undefined): string {
@@ -78,13 +78,13 @@ function qualityNumLabel(num: number | null | undefined): string {
 }
 
 function qualityNumColor(num: number | null | undefined): string {
-  if (num === null || num === undefined) return 'text-gray-400'
+  if (num === null || num === undefined) return 'text-gray-400 dark:text-gray-500'
   switch (num) {
-    case 1: return 'text-green-600'
-    case 2: return 'text-yellow-600'
-    case 3: return 'text-orange-600'
-    case 4: return 'text-red-600'
-    default: return 'text-gray-500'
+    case 1: return 'text-green-600 dark:text-green-400'
+    case 2: return 'text-yellow-600 dark:text-yellow-400'
+    case 3: return 'text-orange-600 dark:text-orange-400'
+    case 4: return 'text-red-600 dark:text-red-400'
+    default: return 'text-gray-500 dark:text-gray-400'
   }
 }
 
@@ -148,71 +148,71 @@ export default function RealtimePage() {
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Real-time Activity</h1>
-          <p className="text-gray-500 mt-1">Live conferences, participants, and call quality</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Real-time Activity</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Live conferences, participants, and call quality</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-          <span className="text-sm text-gray-600">Live</span>
+          <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+          <span className="text-sm text-gray-600 dark:text-gray-400">Live</span>
           {lastUpdated && (
-            <span className="text-xs text-gray-400 ml-2">Updated {formatRelativeTime(lastUpdated)}</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">Updated {formatRelativeTime(lastUpdated)}</span>
           )}
         </div>
       </div>
 
       {/* Summary stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Active VMRs</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{Object.keys(vmrGroups).length}</p>
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-5">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Active VMRs</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{Object.keys(vmrGroups).length}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Active Participants</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{events.length}</p>
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-5">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Active Participants</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{events.length}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Avg per VMR</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-5">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Avg per VMR</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
             {Object.keys(vmrGroups).length > 0
               ? (events.length / Object.keys(vmrGroups).length).toFixed(1)
               : '0'}
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Quality Issues</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">
-            <span className={qualityCounts.bad + qualityCounts.terrible > 0 ? 'text-red-600' : 'text-green-600'}>
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-5">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Quality Issues</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+            <span className={qualityCounts.bad + qualityCounts.terrible > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}>
               {qualityCounts.bad + qualityCounts.terrible}
             </span>
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">bad or terrible</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">bad or terrible</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">RX Packet Loss</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-5">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">RX Packet Loss</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
             {packetLossPercent(totalRxLost, totalRxLost + totalRxRecv)}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">aggregate receive</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">aggregate receive</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">TX Packet Loss</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-5">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">TX Packet Loss</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
             {packetLossPercent(totalTxLost, totalTxLost + totalTxSent)}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">aggregate transmit</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">aggregate transmit</p>
         </div>
       </div>
 
       {/* Quality breakdown bar */}
       {participantsWithQuality.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-8">
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-5 mb-8">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Call Quality Distribution</h2>
-            <span className="text-xs text-gray-400">{participantsWithQuality.length} participant{participantsWithQuality.length !== 1 ? 's' : ''} with quality data</span>
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Call Quality Distribution</h2>
+            <span className="text-xs text-gray-400 dark:text-gray-500">{participantsWithQuality.length} participant{participantsWithQuality.length !== 1 ? 's' : ''} with quality data</span>
           </div>
-          <div className="flex h-4 rounded-full overflow-hidden bg-gray-100">
+          <div className="flex h-4 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700">
             {qualityCounts.good > 0 && (
-              <div className="bg-green-500 transition-all" style={{ width: `${(qualityCounts.good / participantsWithQuality.length) * 100}%` }} title={`Good: ${qualityCounts.good}`} />
+              <div className="bg-emerald-500 transition-all" style={{ width: `${(qualityCounts.good / participantsWithQuality.length) * 100}%` }} title={`Good: ${qualityCounts.good}`} />
             )}
             {qualityCounts.ok > 0 && (
               <div className="bg-yellow-400 transition-all" style={{ width: `${(qualityCounts.ok / participantsWithQuality.length) * 100}%` }} title={`OK: ${qualityCounts.ok}`} />
@@ -225,46 +225,46 @@ export default function RealtimePage() {
             )}
           </div>
           <div className="flex gap-4 mt-2">
-            <span className="flex items-center gap-1.5 text-xs text-gray-600"><span className="w-2 h-2 rounded-full bg-green-500" /> Good ({qualityCounts.good})</span>
-            <span className="flex items-center gap-1.5 text-xs text-gray-600"><span className="w-2 h-2 rounded-full bg-yellow-400" /> OK ({qualityCounts.ok})</span>
-            <span className="flex items-center gap-1.5 text-xs text-gray-600"><span className="w-2 h-2 rounded-full bg-orange-500" /> Bad ({qualityCounts.bad})</span>
-            <span className="flex items-center gap-1.5 text-xs text-gray-600"><span className="w-2 h-2 rounded-full bg-red-500" /> Terrible ({qualityCounts.terrible})</span>
+            <span className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Good ({qualityCounts.good})</span>
+            <span className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400"><span className="w-2 h-2 rounded-full bg-yellow-400" /> OK ({qualityCounts.ok})</span>
+            <span className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400"><span className="w-2 h-2 rounded-full bg-orange-500" /> Bad ({qualityCounts.bad})</span>
+            <span className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400"><span className="w-2 h-2 rounded-full bg-red-500" /> Terrible ({qualityCounts.terrible})</span>
           </div>
         </div>
       )}
 
       {loading ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-6 py-12 text-center text-gray-500">Loading...</div>
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 px-6 py-12 text-center text-gray-500 dark:text-gray-400">Loading...</div>
       ) : events.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-6 py-12 text-center text-gray-500">No active conferences</div>
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 px-6 py-12 text-center text-gray-500 dark:text-gray-400">No active conferences</div>
       ) : (
         <div className="space-y-6">
           {Object.entries(vmrGroups).map(([vmrName, group]) => (
-            <div key={vmrName} className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <div key={vmrName} className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700/50 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  <Link href={`/vmrs/${group.vmr.id}`} className="text-sm font-semibold text-gray-900 hover:text-blue-600">
+                  <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                  <Link href={`/vmrs/${group.vmr.id}`} className="text-sm font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
                     {vmrName}
                   </Link>
                 </div>
-                <span className="text-xs text-gray-500">{group.participants.length} participant{group.participants.length !== 1 ? 's' : ''}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{group.participants.length} participant{group.participants.length !== 1 ? 's' : ''}</span>
               </div>
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-gray-700/30">
                 {group.participants.map(event => (
                   <Link
                     key={event.id}
                     href={`/realtime/${event.id}`}
-                    className="px-6 py-4 flex items-center gap-4 hover:bg-gray-50 transition-colors cursor-pointer block"
+                    className="px-6 py-4 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer block"
                   >
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold">
                       →
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {event.name ?? 'Unknown participant'}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         Joined {formatRelativeTime(event.joinTime)}
                         {event.protocol && <> · {event.protocol}</>}
                         {event.role && <> · {event.role}</>}
@@ -290,12 +290,12 @@ export default function RealtimePage() {
                         </div>
                       )}
                       {(event.rxBandwidth != null || event.txBandwidth != null) && (
-                        <span className="text-xs text-gray-400" title="RX / TX bandwidth">
+                        <span className="text-xs text-gray-400 dark:text-gray-500" title="RX / TX bandwidth">
                           ↓{event.rxBandwidth ?? '-'} ↑{event.txBandwidth ?? '-'} kbps
                         </span>
                       )}
                     </div>
-                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </Link>

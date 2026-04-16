@@ -43,11 +43,6 @@ export default function SettingsPage() {
     : '/api/events'
 
   const hasImportFields = Boolean(username && password)
-  const saveStatusStyles: Record<'saved' | 'saved-partial' | 'error', string> = {
-    saved: 'bg-green-50 text-green-700',
-    'saved-partial': 'bg-yellow-50 text-yellow-800',
-    error: 'bg-red-50 text-red-700'
-  }
 
   useEffect(() => {
     const loadSaved = async () => {
@@ -229,69 +224,69 @@ export default function SettingsPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-500 mt-1">Configure your Pexip Infinity connection</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Configure your Pexip Infinity connection</p>
       </div>
 
       <div className="max-w-2xl space-y-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Event Sink URL</h2>
-          <p className="text-sm text-gray-600 mb-4">
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Event Sink URL</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Configure this URL in Pexip Infinity Management Node under <strong>Platform &gt; Global Settings &gt; Event sink</strong>.
           </p>
           <div className="flex items-center gap-3">
-            <code className="flex-1 px-3 py-2 bg-gray-100 rounded-lg text-sm font-mono text-gray-800 break-all">
+            <code className="flex-1 px-3 py-2.5 bg-gray-100 dark:bg-surface-dark rounded-lg text-sm font-mono text-gray-800 dark:text-gray-200 break-all">
               {eventSinkUrl}
             </code>
             <button
               onClick={handleCopy}
-              className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50"
+              className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 transition-colors"
             >
-              {copied ? <CheckCircle size={16} className="text-green-500" /> : <Copy size={16} />}
+              {copied ? <CheckCircle size={16} className="text-emerald-500" /> : <Copy size={16} />}
               {copied ? 'Copied!' : 'Copy'}
             </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Import CDRs from Pexip Management API</h2>
-          <p className="text-sm text-gray-600 mb-6">
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Import CDRs from Pexip Management API</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
             Import historical conference data from your Pexip Infinity Management Node.
           </p>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Management Node URL</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Management Node URL</label>
               <input
                 type="url"
                 value={baseUrl}
                 onChange={e => setBaseUrl(e.target.value)}
                 placeholder="https://pexip.example.com"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark-alt rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Enter the Management Node URL only, for example <span className="font-mono">https://pexip.example.com</span>, without <span className="font-mono">/admin</span> or any other path.
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
               <input
                 type="text"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 placeholder="admin"
                 autoComplete="username"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark-alt rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 autoComplete="current-password"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark-alt rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
               />
             </div>
             <div>
@@ -300,21 +295,21 @@ export default function SettingsPage() {
                   type="checkbox"
                   checked={excludeShortConferences}
                   onChange={e => setExcludeShortConferences(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
                 />
-                <span className="text-sm font-medium text-gray-700">Exclude short conferences</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Exclude short conferences</span>
               </label>
               {excludeShortConferences && (
                 <div className="mt-2 ml-6">
-                  <label className="block text-sm text-gray-600 mb-1">Minimum duration (seconds)</label>
+                  <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Minimum duration (seconds)</label>
                   <input
                     type="number"
                     min="1"
                     value={minDurationSeconds}
                     onChange={e => setMinDurationSeconds(e.target.value)}
-                    className="w-32 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-32 px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark-alt rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     Conferences shorter than this will be excluded (e.g. to filter SIP scanner calls).
                   </p>
                 </div>
@@ -324,14 +319,14 @@ export default function SettingsPage() {
               <button
                 onClick={handleSave}
                 disabled={!baseUrl || !username}
-                className="w-full py-2 px-4 border border-gray-300 text-gray-800 rounded-lg font-medium text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2.5 px-4 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 rounded-lg font-medium text-sm hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Save credentials
               </button>
               <button
                 onClick={handleImport}
                 disabled={importing || !baseUrl || !hasImportFields}
-                className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg font-medium text-sm hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
               >
                 {importing ? 'Importing...' : 'Import CDRs'}
               </button>
@@ -339,7 +334,11 @@ export default function SettingsPage() {
           </div>
 
           {saveStatus && (
-            <div className={`mt-4 p-4 rounded-lg text-sm ${saveStatusStyles[saveStatus]}`}>
+            <div className={`mt-4 p-4 rounded-lg text-sm ${
+              saveStatus === 'saved' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' :
+              saveStatus === 'saved-partial' ? 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-800 dark:text-yellow-400' :
+              'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400'
+            }`}>
               {saveStatus === 'saved' && 'Saved URL/username and password in your browser credential store.'}
               {saveStatus === 'saved-partial' && 'Saved URL/username. Browser secure password storage is not available here.'}
               {saveStatus === 'error' && 'Could not save settings in this browser.'}
@@ -347,7 +346,7 @@ export default function SettingsPage() {
           )}
 
           {importResult && (
-            <div className={`mt-4 p-4 rounded-lg text-sm ${importResult.error ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+            <div className={`mt-4 p-4 rounded-lg text-sm ${importResult.error ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
               {importResult.error ? (
                 <p>Error: {importResult.error}</p>
               ) : (
@@ -358,12 +357,12 @@ export default function SettingsPage() {
         </div>
 
         {isAdmin && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">User Management</h2>
               <button
                 onClick={() => setShowAddUser(!showAddUser)}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-500/30 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors"
               >
                 <UserPlus size={16} />
                 Add User
@@ -371,35 +370,35 @@ export default function SettingsPage() {
             </div>
 
             {showAddUser && (
-              <form onSubmit={handleAddUser} className="mb-6 p-4 bg-gray-50 rounded-lg space-y-3">
+              <form onSubmit={handleAddUser} className="mb-6 p-4 bg-gray-50 dark:bg-surface-dark rounded-lg space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
                     <input
                       type="text"
                       value={newUsername}
                       onChange={e => setNewUsername(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark-alt rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
                     <input
                       type="password"
                       value={newPassword}
                       onChange={e => setNewPassword(e.target.value)}
                       placeholder="Min. 8 characters"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark-alt rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
                     <select
                       value={newRole}
                       onChange={e => setNewRole(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark-alt rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                     >
                       <option value="admin">Admin</option>
                       <option value="viewer">Viewer</option>
@@ -407,20 +406,20 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 {userError && (
-                  <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded-lg">{userError}</div>
+                  <div className="bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 text-sm px-3 py-2 rounded-lg">{userError}</div>
                 )}
                 <div className="flex gap-2">
                   <button
                     type="submit"
                     disabled={userLoading}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white text-sm font-medium rounded-lg hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 transition-all shadow-sm"
                   >
                     {userLoading ? 'Creating…' : 'Create User'}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setShowAddUser(false); setUserError('') }}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50"
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                   >
                     Cancel
                   </button>
@@ -431,39 +430,39 @@ export default function SettingsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left border-b border-gray-200">
-                    <th className="pb-2 font-medium text-gray-600">Username</th>
-                    <th className="pb-2 font-medium text-gray-600">Role</th>
-                    <th className="pb-2 font-medium text-gray-600">Created</th>
-                    <th className="pb-2 font-medium text-gray-600 text-right">Actions</th>
+                  <tr className="text-left border-b border-gray-200 dark:border-gray-700/50">
+                    <th className="pb-2 font-medium text-gray-600 dark:text-gray-400">Username</th>
+                    <th className="pb-2 font-medium text-gray-600 dark:text-gray-400">Role</th>
+                    <th className="pb-2 font-medium text-gray-600 dark:text-gray-400">Created</th>
+                    <th className="pb-2 font-medium text-gray-600 dark:text-gray-400 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map(user => (
-                    <tr key={user.id} className="border-b border-gray-100 last:border-0">
-                      <td className="py-3 text-gray-900">
+                    <tr key={user.id} className="border-b border-gray-100 dark:border-gray-700/30 last:border-0">
+                      <td className="py-3 text-gray-900 dark:text-gray-100">
                         {user.username}
                         {String(user.id) === session?.user?.id && (
-                          <span className="ml-2 text-xs text-blue-600 font-medium">(you)</span>
+                          <span className="ml-2 text-xs text-primary-600 dark:text-primary-400 font-medium">(you)</span>
                         )}
                       </td>
                       <td className="py-3">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                           user.role === 'admin'
-                            ? 'bg-purple-100 text-purple-700'
-                            : 'bg-gray-100 text-gray-600'
+                            ? 'bg-primary-100 dark:bg-primary-500/10 text-primary-700 dark:text-primary-400'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                         }`}>
                           {user.role}
                         </span>
                       </td>
-                      <td className="py-3 text-gray-500">
+                      <td className="py-3 text-gray-500 dark:text-gray-400">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
                       <td className="py-3 text-right">
                         {String(user.id) !== session?.user?.id && (
                           <button
                             onClick={() => handleDeleteUser(user.id)}
-                            className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                            className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                             title="Delete user"
                           >
                             <Trash2 size={16} />

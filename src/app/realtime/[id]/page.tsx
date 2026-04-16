@@ -97,7 +97,7 @@ function LiveDuration({ joinTime }: { joinTime: string }) {
   const pad = (n: number) => n.toString().padStart(2, '0')
 
   return (
-    <span className="font-mono text-lg text-green-600">
+    <span className="font-mono text-lg text-emerald-600 dark:text-emerald-400">
       {pad(hours)}:{pad(minutes)}:{pad(seconds)}
     </span>
   )
@@ -106,11 +106,11 @@ function LiveDuration({ joinTime }: { joinTime: string }) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function DetailRow({ label, value, icon: Icon }: { label: string; value: string | null | undefined; icon?: React.ComponentType<any> }) {
   return (
-    <div className="flex items-start gap-3 py-3 border-b border-gray-100 last:border-0">
-      {Icon && <Icon size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />}
+    <div className="flex items-start gap-3 py-3 border-b border-gray-100 dark:border-gray-700/30 last:border-0">
+      {Icon && <Icon size={16} className="text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0" />}
       <div className="min-w-0">
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className="text-sm text-gray-900 break-all">{value || '-'}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{label}</p>
+        <p className="text-sm text-gray-900 dark:text-gray-100 break-all">{value || '-'}</p>
       </div>
     </div>
   )
@@ -127,12 +127,12 @@ function qualityLabel(quality: string | null | undefined): string {
 }
 
 function qualityColor(quality: string | null | undefined): string {
-  if (!quality) return 'bg-gray-100 text-gray-600'
-  if (quality.includes('good')) return 'bg-green-100 text-green-700'
-  if (quality.includes('ok')) return 'bg-yellow-100 text-yellow-700'
-  if (quality.includes('bad')) return 'bg-orange-100 text-orange-700'
-  if (quality.includes('terrible')) return 'bg-red-100 text-red-700'
-  return 'bg-gray-100 text-gray-600'
+  if (!quality) return 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+  if (quality.includes('good')) return 'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400'
+  if (quality.includes('ok')) return 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400'
+  if (quality.includes('bad')) return 'bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400'
+  if (quality.includes('terrible')) return 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400'
+  return 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
 }
 
 function qualityDot(quality: string | null | undefined): string {
@@ -209,13 +209,13 @@ export default function ParticipantDetailPage() {
     return () => clearInterval(interval)
   }, [participant, params.id])
 
-  if (loading) return <div className="p-8 text-gray-500">Loading...</div>
+  if (loading) return <div className="p-8 text-gray-500 dark:text-gray-400 dark:text-gray-500">Loading...</div>
   if (error || !participant) return (
     <div className="p-8">
-      <Link href="/realtime" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-4">
+      <Link href="/realtime" className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4 transition-colors">
         <ArrowLeft size={16} /> Back to Real-time
       </Link>
-      <p className="text-gray-500">{error || 'Participant not found'}</p>
+      <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">{error || 'Participant not found'}</p>
     </div>
   )
 
@@ -223,21 +223,21 @@ export default function ParticipantDetailPage() {
 
   return (
     <div className="p-8">
-      <Link href="/realtime" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-4">
+      <Link href="/realtime" className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4 transition-colors">
         <ArrowLeft size={16} /> Back to Real-time
       </Link>
 
       <div className="flex items-center gap-4 mb-8">
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${isActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${isActive ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
           <User size={24} />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             {participant.name || 'Unknown Participant'}
           </h1>
           <div className="flex items-center gap-2 mt-1">
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
               {isActive ? 'Connected' : 'Disconnected'}
             </span>
             {participant.callQuality && (
@@ -248,7 +248,7 @@ export default function ParticipantDetailPage() {
             )}
             <Link
               href={`/vmrs/${participant.conference.vmr.id}`}
-              className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+              className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 hover:underline"
             >
               {participant.conference.vmr.name}
             </Link>
@@ -258,22 +258,22 @@ export default function ParticipantDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Connection Time */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Connection Time</h2>
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Connection Time</h2>
           <div className="text-center py-4">
             {isActive ? (
               <>
                 <LiveDuration joinTime={participant.joinTime} />
-                <p className="text-xs text-gray-500 mt-2">Live duration</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Live duration</p>
               </>
             ) : (
               <>
-                <span className="font-mono text-lg text-gray-700">
+                <span className="font-mono text-lg text-gray-700 dark:text-gray-300">
                   {participant.duration != null
                     ? `${Math.floor(participant.duration / 3600)}h ${Math.floor((participant.duration % 3600) / 60)}m ${Math.floor(participant.duration % 60)}s`
                     : formatDuration(participant.joinTime, participant.leaveTime)}
                 </span>
-                <p className="text-xs text-gray-500 mt-2">Total duration</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Total duration</p>
               </>
             )}
           </div>
@@ -287,8 +287,8 @@ export default function ParticipantDetailPage() {
         </div>
 
         {/* Connection Details */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Connection Details</h2>
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Connection Details</h2>
           <div className="space-y-0">
             <DetailRow label="Protocol" value={participant.protocol} icon={Globe} />
             <DetailRow label="Role" value={participant.role} icon={Shield} />
@@ -300,30 +300,30 @@ export default function ParticipantDetailPage() {
         </div>
 
         {/* Call Quality Overview */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Call Quality</h2>
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Call Quality</h2>
           {!participant.callQuality && participant.qualityWindows.length === 0 ? (
-            <p className="text-sm text-gray-400 py-4 text-center">No quality data available yet</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">No quality data available yet</p>
           ) : (
             <>
               {/* Current quality badges */}
               <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-500 mb-1">Audio</p>
+                <div className="bg-gray-50 dark:bg-surface-dark rounded-lg p-3 text-center">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Audio</p>
                   <span className={`inline-flex items-center gap-1 text-sm font-medium ${qualityColor(participant.audioQuality)} px-2 py-0.5 rounded-full`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${qualityDot(participant.audioQuality)}`} />
                     {qualityLabel(participant.audioQuality)}
                   </span>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-500 mb-1">Video</p>
+                <div className="bg-gray-50 dark:bg-surface-dark rounded-lg p-3 text-center">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Video</p>
                   <span className={`inline-flex items-center gap-1 text-sm font-medium ${qualityColor(participant.videoQuality)} px-2 py-0.5 rounded-full`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${qualityDot(participant.videoQuality)}`} />
                     {qualityLabel(participant.videoQuality)}
                   </span>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-500 mb-1">Overall</p>
+                <div className="bg-gray-50 dark:bg-surface-dark rounded-lg p-3 text-center">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Overall</p>
                   <span className={`inline-flex items-center gap-1 text-sm font-medium ${qualityColor(participant.callQuality)} px-2 py-0.5 rounded-full`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${qualityDot(participant.callQuality)}`} />
                     {qualityLabel(participant.callQuality)}
@@ -334,21 +334,21 @@ export default function ParticipantDetailPage() {
               {/* Latest packet loss */}
               {participant.qualityWindows.length > 0 && (
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-blue-50 rounded-lg p-3">
-                    <p className="text-xs text-blue-600 font-medium mb-1">RX Packet Loss</p>
-                    <p className="text-lg font-bold text-blue-700">
+                  <div className="bg-blue-50 dark:bg-blue-500/10 rounded-lg p-3">
+                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">RX Packet Loss</p>
+                    <p className="text-lg font-bold text-blue-700 dark:text-blue-300">
                       {packetLossPercent(participant.qualityWindows[0].rxPacketsLost, (participant.qualityWindows[0].rxPacketsLost ?? 0) + (participant.qualityWindows[0].rxPacketsRecv ?? 0))}
                     </p>
-                    <p className="text-xs text-blue-500">
+                    <p className="text-xs text-blue-500 dark:text-blue-400">
                       {participant.qualityWindows[0].rxPacketsLost ?? 0} lost / {(participant.qualityWindows[0].rxPacketsLost ?? 0) + (participant.qualityWindows[0].rxPacketsRecv ?? 0)} total
                     </p>
                   </div>
-                  <div className="bg-green-50 rounded-lg p-3">
-                    <p className="text-xs text-green-600 font-medium mb-1">TX Packet Loss</p>
-                    <p className="text-lg font-bold text-green-700">
+                  <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-lg p-3">
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">TX Packet Loss</p>
+                    <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
                       {packetLossPercent(participant.qualityWindows[0].txPacketsLost, (participant.qualityWindows[0].txPacketsLost ?? 0) + (participant.qualityWindows[0].txPacketsSent ?? 0))}
                     </p>
-                    <p className="text-xs text-green-500">
+                    <p className="text-xs text-emerald-500 dark:text-emerald-400">
                       {participant.qualityWindows[0].txPacketsLost ?? 0} lost / {(participant.qualityWindows[0].txPacketsLost ?? 0) + (participant.qualityWindows[0].txPacketsSent ?? 0)} total
                     </p>
                   </div>
@@ -359,37 +359,37 @@ export default function ParticipantDetailPage() {
         </div>
 
         {/* Bandwidth & Media */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Bandwidth &amp; Media</h2>
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Bandwidth &amp; Media</h2>
           <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="bg-blue-50 rounded-lg p-4 text-center">
+            <div className="bg-blue-50 dark:bg-blue-500/10 rounded-lg p-4 text-center">
               <div className="flex items-center justify-center gap-1.5 mb-1">
-                <ArrowDown size={14} className="text-blue-500" />
-                <span className="text-xs font-medium text-blue-600 uppercase">Receive</span>
+                <ArrowDown size={14} className="text-blue-500 dark:text-blue-400" />
+                <span className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase">Receive</span>
               </div>
-              <p className="text-2xl font-bold text-blue-700">
+              <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                 {participant.rxBandwidth != null ? participant.rxBandwidth : '-'}
               </p>
-              <p className="text-xs text-blue-500">kbps</p>
+              <p className="text-xs text-blue-500 dark:text-blue-400">kbps</p>
             </div>
-            <div className="bg-green-50 rounded-lg p-4 text-center">
+            <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-lg p-4 text-center">
               <div className="flex items-center justify-center gap-1.5 mb-1">
-                <ArrowUp size={14} className="text-green-500" />
-                <span className="text-xs font-medium text-green-600 uppercase">Transmit</span>
+                <ArrowUp size={14} className="text-emerald-500 dark:text-emerald-400" />
+                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase">Transmit</span>
               </div>
-              <p className="text-2xl font-bold text-green-700">
+              <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
                 {participant.txBandwidth != null ? participant.txBandwidth : '-'}
               </p>
-              <p className="text-xs text-green-500">kbps</p>
+              <p className="text-xs text-emerald-500 dark:text-emerald-400">kbps</p>
             </div>
           </div>
           {(participant.rxBandwidth != null && participant.txBandwidth != null) && (
-            <div className="bg-gray-50 rounded-lg p-3 mb-4">
-              <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+            <div className="bg-gray-50 dark:bg-surface-dark rounded-lg p-3 mb-4">
+              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
                 <span>Total bandwidth</span>
-                <span className="font-medium text-gray-700">{participant.rxBandwidth + participant.txBandwidth} kbps</span>
+                <span className="font-medium text-gray-700 dark:text-gray-300">{participant.rxBandwidth + participant.txBandwidth} kbps</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div className="flex h-2 rounded-full overflow-hidden">
                   <div
                     className="bg-blue-400"
@@ -402,15 +402,15 @@ export default function ParticipantDetailPage() {
                 </div>
               </div>
               <div className="flex justify-between text-xs mt-1">
-                <span className="text-blue-500">RX {Math.round((participant.rxBandwidth / (participant.rxBandwidth + participant.txBandwidth)) * 100)}%</span>
-                <span className="text-green-500">TX {Math.round((participant.txBandwidth / (participant.rxBandwidth + participant.txBandwidth)) * 100)}%</span>
+                <span className="text-blue-500 dark:text-blue-400">RX {Math.round((participant.rxBandwidth / (participant.rxBandwidth + participant.txBandwidth)) * 100)}%</span>
+                <span className="text-emerald-500 dark:text-emerald-400">TX {Math.round((participant.txBandwidth / (participant.rxBandwidth + participant.txBandwidth)) * 100)}%</span>
               </div>
             </div>
           )}
           <div className="space-y-0">
             <div className="flex items-center gap-3 py-3 border-b border-gray-100">
               <div className="min-w-0">
-                <p className="text-xs text-gray-500">Muted</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">Muted</p>
                 <p className="text-sm text-gray-900">
                   {participant.isMuted === true && <span className="inline-flex items-center gap-1 text-red-600"><span className="w-2 h-2 rounded-full bg-red-500" /> Yes</span>}
                   {participant.isMuted === false && <span className="inline-flex items-center gap-1 text-green-600"><span className="w-2 h-2 rounded-full bg-green-500" /> No</span>}
@@ -420,10 +420,10 @@ export default function ParticipantDetailPage() {
             </div>
             <div className="flex items-center gap-3 py-3 border-b border-gray-100">
               <div className="min-w-0">
-                <p className="text-xs text-gray-500">Presenting</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">Presenting</p>
                 <p className="text-sm text-gray-900">
                   {participant.isPresenting === true && <span className="inline-flex items-center gap-1 text-blue-600"><span className="w-2 h-2 rounded-full bg-blue-500" /> Yes</span>}
-                  {participant.isPresenting === false && <span className="inline-flex items-center gap-1 text-gray-600"><span className="w-2 h-2 rounded-full bg-gray-400" /> No</span>}
+                  {participant.isPresenting === false && <span className="inline-flex items-center gap-1 text-gray-600 dark:text-gray-400 dark:text-gray-500"><span className="w-2 h-2 rounded-full bg-gray-400" /> No</span>}
                   {participant.isPresenting == null && '-'}
                 </p>
               </div>
@@ -434,8 +434,8 @@ export default function ParticipantDetailPage() {
         </div>
 
         {/* Identity & Aliases */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Identity &amp; Aliases</h2>
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Identity &amp; Aliases</h2>
           <div className="space-y-0">
             <DetailRow label="Display Name" value={participant.name} icon={User} />
             <DetailRow label="Identity" value={participant.identity} />
@@ -445,8 +445,8 @@ export default function ParticipantDetailPage() {
         </div>
 
         {/* Conference Info */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Conference</h2>
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Conference</h2>
           <div className="space-y-0">
             <DetailRow label="VMR" value={participant.conference.vmr.name} />
             <DetailRow label="Conference Started" value={formatDateTime(participant.conference.startTime)} icon={Clock} />
@@ -459,15 +459,15 @@ export default function ParticipantDetailPage() {
 
       {/* Media Streams - full width */}
       {participant.mediaStreams.length > 0 && (
-        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Media Streams</h2>
+        <div className="mt-6 bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Media Streams</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {participant.mediaStreams.map(ms => (
               <div key={ms.id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-lg">{streamTypeIcon(ms.streamType)}</span>
-                  <span className="text-sm font-semibold text-gray-900 capitalize">{ms.streamType}</span>
-                  {ms.streamId && <span className="text-xs text-gray-400">#{ms.streamId}</span>}
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white capitalize">{ms.streamType}</span>
+                  {ms.streamId && <span className="text-xs text-gray-400 dark:text-gray-500">#{ms.streamId}</span>}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
@@ -478,7 +478,7 @@ export default function ParticipantDetailPage() {
                     {ms.rxBitrate != null && <p className="text-gray-700">Bitrate: {ms.rxBitrate} kbps</p>}
                     <p className="text-gray-700">
                       Loss: {ms.rxPacketLoss != null ? `${ms.rxPacketLoss.toFixed(2)}%` : '-'}
-                      {ms.rxPacketsLost != null && <span className="text-gray-400"> ({ms.rxPacketsLost} pkts)</span>}
+                      {ms.rxPacketsLost != null && <span className="text-gray-400 dark:text-gray-500"> ({ms.rxPacketsLost} pkts)</span>}
                     </p>
                   </div>
                   <div>
@@ -489,7 +489,7 @@ export default function ParticipantDetailPage() {
                     {ms.txBitrate != null && <p className="text-gray-700">Bitrate: {ms.txBitrate} kbps</p>}
                     <p className="text-gray-700">
                       Loss: {ms.txPacketLoss != null ? `${ms.txPacketLoss.toFixed(2)}%` : '-'}
-                      {ms.txPacketsLost != null && <span className="text-gray-400"> ({ms.txPacketsLost} pkts)</span>}
+                      {ms.txPacketsLost != null && <span className="text-gray-400 dark:text-gray-500"> ({ms.txPacketsLost} pkts)</span>}
                     </p>
                   </div>
                 </div>
@@ -502,8 +502,8 @@ export default function ParticipantDetailPage() {
 
       {/* Quality History */}
       {participant.qualityWindows.length > 0 && (
-        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Quality History</h2>
+        <div className="mt-6 bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Quality History</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
@@ -526,9 +526,9 @@ export default function ParticipantDetailPage() {
                       {qw.qualityWas && qw.qualityNow ? (
                         <span className="inline-flex items-center gap-1">
                           <span className={`w-1.5 h-1.5 rounded-full ${qualityDot(qw.qualityWas)}`} />
-                          <span className="text-gray-400">→</span>
+                          <span className="text-gray-400 dark:text-gray-500">→</span>
                           <span className={`w-1.5 h-1.5 rounded-full ${qualityDot(qw.qualityNow)}`} />
-                          <span className="text-gray-600">{qualityLabel(qw.qualityNow)}</span>
+                          <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500">{qualityLabel(qw.qualityNow)}</span>
                         </span>
                       ) : '-'}
                     </td>
