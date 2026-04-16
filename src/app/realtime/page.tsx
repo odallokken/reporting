@@ -162,15 +162,15 @@ export default function RealtimePage() {
 
       {/* Summary stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-5">
+        <div className="glass-card rounded-2xl shadow-glass p-5">
           <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Active VMRs</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{Object.keys(vmrGroups).length}</p>
         </div>
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-5">
+        <div className="glass-card rounded-2xl shadow-glass p-5">
           <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Active Participants</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{events.length}</p>
         </div>
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-5">
+        <div className="glass-card rounded-2xl shadow-glass p-5">
           <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Avg per VMR</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
             {Object.keys(vmrGroups).length > 0
@@ -178,7 +178,7 @@ export default function RealtimePage() {
               : '0'}
           </p>
         </div>
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-5">
+        <div className="glass-card rounded-2xl shadow-glass p-5">
           <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Quality Issues</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
             <span className={qualityCounts.bad + qualityCounts.terrible > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}>
@@ -187,14 +187,14 @@ export default function RealtimePage() {
           </p>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">bad or terrible</p>
         </div>
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-5">
+        <div className="glass-card rounded-2xl shadow-glass p-5">
           <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">RX Packet Loss</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
             {packetLossPercent(totalRxLost, totalRxLost + totalRxRecv)}
           </p>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">aggregate receive</p>
         </div>
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-5">
+        <div className="glass-card rounded-2xl shadow-glass p-5">
           <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">TX Packet Loss</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
             {packetLossPercent(totalTxLost, totalTxLost + totalTxSent)}
@@ -205,7 +205,7 @@ export default function RealtimePage() {
 
       {/* Quality breakdown bar */}
       {participantsWithQuality.length > 0 && (
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-5 mb-8">
+        <div className="glass-card rounded-2xl shadow-glass p-5 mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Call Quality Distribution</h2>
             <span className="text-xs text-gray-400 dark:text-gray-500">{participantsWithQuality.length} participant{participantsWithQuality.length !== 1 ? 's' : ''} with quality data</span>
@@ -234,14 +234,14 @@ export default function RealtimePage() {
       )}
 
       {loading ? (
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 px-6 py-12 text-center text-gray-500 dark:text-gray-400">Loading...</div>
+        <div className="glass-card rounded-2xl shadow-glass px-6 py-12 text-center text-gray-500 dark:text-gray-400">Loading...</div>
       ) : events.length === 0 ? (
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 px-6 py-12 text-center text-gray-500 dark:text-gray-400">No active conferences</div>
+        <div className="glass-card rounded-2xl shadow-glass px-6 py-12 text-center text-gray-500 dark:text-gray-400">No active conferences</div>
       ) : (
         <div className="space-y-6">
           {Object.entries(vmrGroups).map(([vmrName, group]) => (
-            <div key={vmrName} className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700/50 flex items-center justify-between">
+            <div key={vmrName} className="glass-card rounded-2xl shadow-glass">
+              <div className="px-6 py-4 border-b border-gray-200/60 dark:border-gray-700/30 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
                   <Link href={`/vmrs/${group.vmr.id}`} className="text-sm font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors">

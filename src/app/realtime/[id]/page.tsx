@@ -258,7 +258,7 @@ export default function ParticipantDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Connection Time */}
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Connection Time</h2>
           <div className="text-center py-4">
             {isActive ? (
@@ -287,7 +287,7 @@ export default function ParticipantDetailPage() {
         </div>
 
         {/* Connection Details */}
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Connection Details</h2>
           <div className="space-y-0">
             <DetailRow label="Protocol" value={participant.protocol} icon={Globe} />
@@ -300,7 +300,7 @@ export default function ParticipantDetailPage() {
         </div>
 
         {/* Call Quality Overview */}
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Call Quality</h2>
           {!participant.callQuality && participant.qualityWindows.length === 0 ? (
             <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">No quality data available yet</p>
@@ -359,7 +359,7 @@ export default function ParticipantDetailPage() {
         </div>
 
         {/* Bandwidth & Media */}
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Bandwidth &amp; Media</h2>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="bg-blue-50 dark:bg-blue-500/10 rounded-lg p-4 text-center">
@@ -434,7 +434,7 @@ export default function ParticipantDetailPage() {
         </div>
 
         {/* Identity & Aliases */}
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Identity &amp; Aliases</h2>
           <div className="space-y-0">
             <DetailRow label="Display Name" value={participant.name} icon={User} />
@@ -445,7 +445,7 @@ export default function ParticipantDetailPage() {
         </div>
 
         {/* Conference Info */}
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Conference</h2>
           <div className="space-y-0">
             <DetailRow label="VMR" value={participant.conference.vmr.name} />
@@ -459,7 +459,7 @@ export default function ParticipantDetailPage() {
 
       {/* Media Streams - full width */}
       {participant.mediaStreams.length > 0 && (
-        <div className="mt-6 bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="mt-6 glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Media Streams</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {participant.mediaStreams.map(ms => (
@@ -502,7 +502,7 @@ export default function ParticipantDetailPage() {
 
       {/* Quality History */}
       {participant.qualityWindows.length > 0 && (
-        <div className="mt-6 bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="mt-6 glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Quality History</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">

@@ -78,14 +78,14 @@ export default function StaticVMRDetailPage() {
       </div>
 
       {vmr.conferences.length > 0 && (
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6 mb-8">
+        <div className="glass-card rounded-2xl shadow-glass p-6 mb-8">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Conference Frequency (Last 30 Days)</h2>
           <ConferenceFrequencyChart data={freqData} />
         </div>
       )}
 
-      <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700/50">
+      <div className="glass-card rounded-2xl shadow-glass">
+        <div className="px-6 py-4 border-b border-gray-200/60 dark:border-gray-700/30">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Conferences</h2>
         </div>
         <div className="divide-y divide-gray-100 dark:divide-gray-700/30">
@@ -122,7 +122,7 @@ export default function StaticVMRDetailPage() {
                   <div className="px-12 pb-4">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700/50">
+                        <tr className="text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200/60 dark:border-gray-700/30">
                           <th className="text-left py-2">Name</th>
                           <th className="text-left py-2">Joined</th>
                           <th className="text-left py-2">Left</th>

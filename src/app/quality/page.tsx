@@ -78,7 +78,7 @@ export default function QualityPage() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6 h-[380px] animate-pulse" />
+            <div key={i} className="glass-card rounded-2xl shadow-glass p-6 h-[380px] animate-pulse" />
           ))}
         </div>
       </div>
@@ -106,7 +106,7 @@ export default function QualityPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Calls Measured</p>
@@ -118,7 +118,7 @@ export default function QualityPage() {
             </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Good Quality</p>
@@ -132,7 +132,7 @@ export default function QualityPage() {
             </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Problem Calls</p>
@@ -146,7 +146,7 @@ export default function QualityPage() {
             </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">High Packet Loss</p>
@@ -164,11 +164,11 @@ export default function QualityPage() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quality Distribution</h2>
           <QualityDistributionChart data={qualityDistData} />
         </div>
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quality Trend (30 Days)</h2>
           <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">Lower is better — 1 = Good, 4 = Terrible</p>
           <QualityTrendChart data={data.qualityTrends} />
@@ -176,7 +176,7 @@ export default function QualityPage() {
       </div>
 
       {/* Packet Loss Breakdown */}
-      <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6 mb-8">
+      <div className="glass-card rounded-2xl shadow-glass p-6 mb-8">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Packet Loss Overview</h2>
         <div className="flex gap-8 flex-wrap">
           <div className="flex items-center gap-3">
@@ -211,7 +211,7 @@ export default function QualityPage() {
       </div>
 
       {/* Problem calls table */}
-      <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+      <div className="glass-card rounded-2xl shadow-glass p-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Problem Calls</h2>
         {data.problemCalls.length === 0 ? (
           <p className="text-gray-500 dark:text-gray-400 text-sm">No problem calls found in the last 30 days</p>

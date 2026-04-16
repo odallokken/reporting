@@ -89,23 +89,23 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatsCard title="Active Conferences" value={data.activeConferences} subtitle="Right now" icon={Wifi} color="green" href="/realtime" />
-        <StatsCard title="Active Participants" value={data.activeParticipants} subtitle="Right now" icon={Users} color="blue" href="/realtime" />
+        <StatsCard title="Active Participants" value={data.activeParticipants} subtitle="Right now" icon={Users} color="teal" href="/realtime" />
         <StaticVmrCountCard />
         <StatsCard title="Active VMRs" value={data.activeVmrs} subtitle="Used in last 30 days" icon={Activity} color="green" href="/vmrs/static" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Conference Activity (Last 30 Days)</h2>
           <ActivityLineChart data={data.usageByDay} />
         </div>
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 5 Most Active VMRs</h2>
           <TopStaticVMRsBarChart />
         </div>
       </div>
 
-      <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+      <div className="glass-card rounded-2xl shadow-glass p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
           <Link href="/logs" className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 hover:underline font-medium">

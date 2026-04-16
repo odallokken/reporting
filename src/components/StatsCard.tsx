@@ -7,14 +7,14 @@ interface StatsCardProps {
   subtitle?: string
   icon?: LucideIcon
   trend?: 'up' | 'down' | 'neutral'
-  color?: 'blue' | 'green' | 'yellow' | 'red' | 'purple'
+  color?: 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'teal'
   href?: string
 }
 
 const colorMap = {
   blue: {
-    bg: 'bg-blue-50 dark:bg-blue-500/10',
-    icon: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-accent-50 dark:bg-accent-500/10',
+    icon: 'text-accent-600 dark:text-accent-400',
   },
   green: {
     bg: 'bg-emerald-50 dark:bg-emerald-500/10',
@@ -32,13 +32,17 @@ const colorMap = {
     bg: 'bg-primary-50 dark:bg-primary-500/10',
     icon: 'text-primary-600 dark:text-primary-400',
   },
+  teal: {
+    bg: 'bg-primary-50 dark:bg-primary-500/10',
+    icon: 'text-primary-600 dark:text-primary-400',
+  },
 }
 
-export function StatsCard({ title, value, subtitle, icon: Icon, color = 'blue', href }: StatsCardProps) {
+export function StatsCard({ title, value, subtitle, icon: Icon, color = 'teal', href }: StatsCardProps) {
   const colors = colorMap[color]
 
   const content = (
-    <div className={`bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6 transition-all duration-200 ${href ? 'hover:shadow-md hover:border-primary-200 dark:hover:border-primary-500/30 cursor-pointer hover:-translate-y-0.5' : ''}`}>
+    <div className={`glass-card rounded-2xl shadow-glass p-6 transition-all duration-200 ${href ? 'hover:shadow-glass-hover cursor-pointer hover:-translate-y-0.5' : ''}`}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
@@ -46,7 +50,7 @@ export function StatsCard({ title, value, subtitle, icon: Icon, color = 'blue', 
           {subtitle && <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{subtitle}</p>}
         </div>
         {Icon && (
-          <div className={`${colors.bg} p-3 rounded-xl`}>
+          <div className={`${colors.bg} p-3 rounded-2xl`}>
             <Icon size={22} className={colors.icon} />
           </div>
         )}

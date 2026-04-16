@@ -32,10 +32,10 @@ export function ConferenceFrequencyChart({ data }: { data: DataPoint[] }) {
         <Line
           type="monotone"
           dataKey="count"
-          stroke="#8b5cf6"
+          stroke="#1de4c3"
           strokeWidth={2.5}
           dot={false}
-          activeDot={{ r: 5, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }}
+          activeDot={{ r: 5, fill: '#1de4c3', stroke: '#fff', strokeWidth: 2 }}
           name="Conferences"
         />
       </LineChart>
