@@ -123,10 +123,10 @@ export default function ScheduledVMRsPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3">
-            <Calendar size={24} className="text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">Scheduled VMR Calls</h1>
+            <Calendar size={24} className="text-primary-600 dark:text-primary-400" />
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Scheduled VMR Calls</h1>
           </div>
-          <p className="text-gray-500 mt-1">
+          <p className="text-gray-500 dark:text-gray-400 mt-1">
             {missingCredentials
               ? 'Configure credentials in Settings to view scheduled conferences'
               : `${total} scheduled conferences via Outlook`}
@@ -135,11 +135,11 @@ export default function ScheduledVMRsPage() {
       </div>
 
       {missingCredentials && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 flex items-start gap-4">
-          <AlertCircle size={20} className="text-yellow-600 mt-0.5 flex-shrink-0" />
+        <div className="bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20 rounded-xl p-6 flex items-start gap-4">
+          <AlertCircle size={20} className="text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="text-sm font-medium text-yellow-800">Credentials required</p>
-            <p className="text-sm text-yellow-700 mt-1">
+            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">Credentials required</p>
+            <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
               Go to <a href="/settings" className="underline font-medium">Settings</a> and configure your Management Node URL, username, and password.
             </p>
           </div>
@@ -147,35 +147,35 @@ export default function ScheduledVMRsPage() {
       )}
 
       {!missingCredentials && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="p-4 border-b border-gray-200">
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700/50">
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <input
                 type="text"
                 placeholder="Search scheduled conferences..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark-alt rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
               />
             </div>
           </div>
 
           {error && (
-            <div className="px-6 py-4 bg-red-50 text-sm text-red-700 border-b border-red-100">
+            <div className="px-6 py-4 bg-red-50 dark:bg-red-500/10 text-sm text-red-700 dark:text-red-400 border-b border-red-100 dark:border-red-500/20">
               {error}
             </div>
           )}
 
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-surface-dark">
                 <tr>
                   {columns.map(col => (
                     <th
                       key={col.key}
                       onClick={() => col.sortable && handleSort(col.key as SortKey)}
-                      className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${col.sortable ? 'cursor-pointer hover:text-gray-700 select-none' : ''}`}
+                      className={`px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${col.sortable ? 'cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 select-none' : ''}`}
                     >
                       <span className="flex items-center gap-1">
                         {col.label}
@@ -185,36 +185,36 @@ export default function ScheduledVMRsPage() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/30">
                 {loading ? (
-                  <tr><td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500">Loading...</td></tr>
+                  <tr><td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Loading...</td></tr>
                 ) : sortedConferences.length === 0 ? (
-                  <tr><td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500">No scheduled conferences found</td></tr>
+                  <tr><td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">No scheduled conferences found</td></tr>
                 ) : (
                   sortedConferences.map(conf => (
-                    <tr key={conf.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={conf.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{conf.name}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{conf.name}</div>
                         {conf.description && (
-                          <div className="text-xs text-gray-500 mt-0.5">{conf.description}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{conf.description}</div>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                         {conf.aliases.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {conf.aliases.map((alias, i) => (
-                              <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">
+                              <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                                 {alias}
                               </span>
                             ))}
                           </div>
                         ) : '—'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{formatDateTime(conf.start_time)}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{formatDateTime(conf.end_time)}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{formatDurationMinutes(conf.duration)}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{formatDateTime(conf.start_time)}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{formatDateTime(conf.end_time)}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{formatDurationMinutes(conf.duration)}</td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${conf.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${conf.is_active ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400'}`}>
                           {conf.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>

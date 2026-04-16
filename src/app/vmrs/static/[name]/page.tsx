@@ -56,19 +56,19 @@ export default function StaticVMRDetailPage() {
       .finally(() => setLoading(false))
   }, [params.name])
 
-  if (loading) return <div className="p-8 text-gray-500">Loading...</div>
-  if (!vmr) return <div className="p-8 text-gray-500">VMR not found</div>
+  if (loading) return <div className="p-8 text-gray-500 dark:text-gray-400">Loading...</div>
+  if (!vmr) return <div className="p-8 text-gray-500 dark:text-gray-400">VMR not found</div>
 
   const freqData = buildFrequencyData(vmr.conferences)
 
   return (
     <div className="p-8">
       <div className="mb-6">
-        <Link href="/vmrs/static" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-4">
+        <Link href="/vmrs/static" className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4 transition-colors">
           <ArrowLeft size={16} /> Back to Static VMRs
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">{vmr.name}</h1>
-        <p className="text-gray-500 text-sm mt-1">Last used: {formatRelativeTime(vmr.lastUsedAt)}</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{vmr.name}</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Last used: {formatRelativeTime(vmr.lastUsedAt)}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -78,43 +78,43 @@ export default function StaticVMRDetailPage() {
       </div>
 
       {vmr.conferences.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Conference Frequency (Last 30 Days)</h2>
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Conference Frequency (Last 30 Days)</h2>
           <ConferenceFrequencyChart data={freqData} />
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Conferences</h2>
+      <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700/50">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Conferences</h2>
         </div>
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-gray-100 dark:divide-gray-700/30">
           {vmr.conferences.length === 0 ? (
-            <p className="px-6 py-8 text-center text-gray-500">No conferences recorded for this VMR</p>
+            <p className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">No conferences recorded for this VMR</p>
           ) : (
             vmr.conferences.map(conf => (
               <div key={conf.id}>
                 <div
-                  className="px-6 py-4 flex items-center gap-4 cursor-pointer hover:bg-gray-50"
+                  className="px-6 py-4 flex items-center gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                   onClick={() => setExpandedConf(expandedConf === conf.id ? null : conf.id)}
                 >
-                  {expandedConf === conf.id ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
+                  {expandedConf === conf.id ? <ChevronDown size={16} className="text-gray-400 dark:text-gray-500" /> : <ChevronRight size={16} className="text-gray-400 dark:text-gray-500" />}
                   <div className="flex-1 grid grid-cols-4 gap-4">
                     <div>
-                      <p className="text-xs text-gray-500">Start</p>
-                      <p className="text-sm text-gray-900">{formatDateTime(conf.startTime)}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Start</p>
+                      <p className="text-sm text-gray-900 dark:text-gray-100">{formatDateTime(conf.startTime)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">End</p>
-                      <p className="text-sm text-gray-900">{conf.endTime ? formatDateTime(conf.endTime) : 'Ongoing'}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">End</p>
+                      <p className="text-sm text-gray-900 dark:text-gray-100">{conf.endTime ? formatDateTime(conf.endTime) : 'Ongoing'}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Duration</p>
-                      <p className="text-sm text-gray-900">{formatDuration(conf.startTime, conf.endTime)}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Duration</p>
+                      <p className="text-sm text-gray-900 dark:text-gray-100">{formatDuration(conf.startTime, conf.endTime)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Participants</p>
-                      <p className="text-sm text-gray-900">{conf.participantCount}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Participants</p>
+                      <p className="text-sm text-gray-900 dark:text-gray-100">{conf.participantCount}</p>
                     </div>
                   </div>
                 </div>
@@ -122,7 +122,7 @@ export default function StaticVMRDetailPage() {
                   <div className="px-12 pb-4">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-xs text-gray-500 border-b">
+                        <tr className="text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700/50">
                           <th className="text-left py-2">Name</th>
                           <th className="text-left py-2">Joined</th>
                           <th className="text-left py-2">Left</th>
@@ -131,11 +131,11 @@ export default function StaticVMRDetailPage() {
                       </thead>
                       <tbody>
                         {conf.participants.map(p => (
-                          <tr key={p.id} className="border-b border-gray-50">
-                            <td className="py-2">{p.name ?? 'Unknown'}</td>
-                            <td className="py-2 text-gray-600">{formatDateTime(p.joinTime)}</td>
-                            <td className="py-2 text-gray-600">{p.leaveTime ? formatDateTime(p.leaveTime) : 'Still in call'}</td>
-                            <td className="py-2 text-gray-600">{formatDuration(p.joinTime, p.leaveTime)}</td>
+                          <tr key={p.id} className="border-b border-gray-50 dark:border-gray-700/20">
+                            <td className="py-2 text-gray-900 dark:text-gray-100">{p.name ?? 'Unknown'}</td>
+                            <td className="py-2 text-gray-600 dark:text-gray-400">{formatDateTime(p.joinTime)}</td>
+                            <td className="py-2 text-gray-600 dark:text-gray-400">{p.leaveTime ? formatDateTime(p.leaveTime) : 'Still in call'}</td>
+                            <td className="py-2 text-gray-600 dark:text-gray-400">{formatDuration(p.joinTime, p.leaveTime)}</td>
                           </tr>
                         ))}
                       </tbody>

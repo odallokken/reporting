@@ -72,7 +72,7 @@ export function TopStaticVMRsBarChart() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-[300px] text-gray-400 text-sm">
+      <div className="flex items-center justify-center h-[300px] text-gray-400 dark:text-gray-500 text-sm">
         {error}
       </div>
     )
@@ -80,7 +80,7 @@ export function TopStaticVMRsBarChart() {
 
   if (data === null) {
     return (
-      <div className="flex items-center justify-center h-[300px] text-gray-400 text-sm">
+      <div className="flex items-center justify-center h-[300px] text-gray-400 dark:text-gray-500 text-sm">
         Loading…
       </div>
     )
@@ -88,7 +88,7 @@ export function TopStaticVMRsBarChart() {
 
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[300px] text-gray-400 text-sm">
+      <div className="flex items-center justify-center h-[300px] text-gray-400 dark:text-gray-500 text-sm">
         No conference data for static VMRs
       </div>
     )

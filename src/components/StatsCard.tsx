@@ -12,25 +12,42 @@ interface StatsCardProps {
 }
 
 const colorMap = {
-  blue: 'bg-blue-500',
-  green: 'bg-green-500',
-  yellow: 'bg-yellow-500',
-  red: 'bg-red-500',
-  purple: 'bg-purple-500',
+  blue: {
+    bg: 'bg-blue-50 dark:bg-blue-500/10',
+    icon: 'text-blue-600 dark:text-blue-400',
+  },
+  green: {
+    bg: 'bg-emerald-50 dark:bg-emerald-500/10',
+    icon: 'text-emerald-600 dark:text-emerald-400',
+  },
+  yellow: {
+    bg: 'bg-amber-50 dark:bg-amber-500/10',
+    icon: 'text-amber-600 dark:text-amber-400',
+  },
+  red: {
+    bg: 'bg-red-50 dark:bg-red-500/10',
+    icon: 'text-red-600 dark:text-red-400',
+  },
+  purple: {
+    bg: 'bg-primary-50 dark:bg-primary-500/10',
+    icon: 'text-primary-600 dark:text-primary-400',
+  },
 }
 
 export function StatsCard({ title, value, subtitle, icon: Icon, color = 'blue', href }: StatsCardProps) {
+  const colors = colorMap[color]
+
   const content = (
-    <div className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 transition-all ${href ? 'hover:shadow-md hover:border-gray-300 cursor-pointer' : ''}`}>
+    <div className={`bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6 transition-all duration-200 ${href ? 'hover:shadow-md hover:border-primary-200 dark:hover:border-primary-500/30 cursor-pointer hover:-translate-y-0.5' : ''}`}>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
-          {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
+          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{value}</p>
+          {subtitle && <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{subtitle}</p>}
         </div>
         {Icon && (
-          <div className={`${colorMap[color]} p-3 rounded-lg`}>
-            <Icon size={24} className="text-white" />
+          <div className={`${colors.bg} p-3 rounded-xl`}>
+            <Icon size={22} className={colors.icon} />
           </div>
         )}
       </div>

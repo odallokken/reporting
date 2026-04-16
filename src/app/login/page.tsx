@@ -52,27 +52,27 @@ export default function LoginPage() {
 
   if (checkingSetup) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Loading…</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-surface-dark">
+        <p className="text-gray-500 dark:text-gray-400">Loading…</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-surface-dark">
       <div className="w-full max-w-sm">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+        <div className="bg-white dark:bg-surface-dark-card rounded-2xl shadow-lg border border-gray-200/80 dark:border-gray-700/50 p-8">
           <div className="flex flex-col items-center mb-6">
-            <div className="bg-blue-500 p-3 rounded-lg mb-3">
+            <div className="bg-gradient-to-br from-primary-500 to-primary-700 p-3.5 rounded-xl mb-4 shadow-lg shadow-primary-500/20">
               <Lock size={24} className="text-white" />
             </div>
-            <h1 className="text-xl font-bold text-gray-900">Pexip Reporting</h1>
-            <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Pexip Reporting</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Sign in to your account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Username
               </label>
               <input
@@ -80,14 +80,14 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-surface-dark-alt px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500"
                 required
                 autoFocus
                 autoComplete="username"
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Password
               </label>
               <input
@@ -95,14 +95,14 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-surface-dark-alt px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500"
                 required
                 autoComplete="current-password"
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded-lg">
+              <div className="bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 text-sm px-3 py-2.5 rounded-lg">
                 {error}
               </div>
             )}
@@ -110,7 +110,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white text-sm font-medium rounded-lg px-4 py-2.5 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white text-sm font-medium rounded-lg px-4 py-2.5 hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-surface-dark-card disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
             >
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
