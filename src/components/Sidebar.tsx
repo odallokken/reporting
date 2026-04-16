@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { useTheme } from './ThemeProvider'
-import { LayoutDashboard, Video, VideoOff, Calendar, Activity, Settings, ScrollText, LogOut, Moon, Sun } from 'lucide-react'
+import { LayoutDashboard, Video, VideoOff, Calendar, Activity, Settings, ScrollText, LogOut, Moon, Sun, ShieldCheck, BarChart3, Search } from 'lucide-react'
 
 const links = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -11,6 +11,9 @@ const links = [
   { href: '/vmrs/dynamic', label: 'Dynamic VMRs', icon: VideoOff },
   { href: '/vmrs/scheduled', label: 'Scheduled VMR calls', icon: Calendar },
   { href: '/realtime', label: 'Real-time', icon: Activity },
+  { href: '/quality', label: 'Call Quality', icon: ShieldCheck },
+  { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/search', label: 'Search', icon: Search },
   { href: '/logs', label: 'Logs', icon: ScrollText },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
