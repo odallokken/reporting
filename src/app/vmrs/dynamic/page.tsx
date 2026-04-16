@@ -3,10 +3,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Download, ChevronUp, ChevronDown } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/utils'
+import { useCredentials } from '@/lib/credentials'
 import type { VMRWithStats } from '@/lib/types'
 
 export default function DynamicVMRsPage() {
   const router = useRouter()
+  const { baseUrl, username, password, loaded } = useCredentials()
   const [vmrs, setVmrs] = useState<VMRWithStats[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -17,23 +19,30 @@ export default function DynamicVMRsPage() {
   const limit = 20
 
   const fetchVmrs = useCallback(async () => {
+    if (!loaded) return
     setLoading(true)
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-        search,
-        sortBy,
-        sortOrder
+      const res = await fetch('/api/vmrs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page,
+          limit,
+          search,
+          sortBy,
+          sortOrder,
+          baseUrl,
+          username,
+          password
+        })
       })
-      const res = await fetch(`/api/vmrs?${params}`)
       const data = await res.json()
       setVmrs(data.vmrs ?? [])
       setTotal(data.total ?? 0)
     } finally {
       setLoading(false)
     }
-  }, [page, search, sortBy, sortOrder])
+  }, [page, search, sortBy, sortOrder, loaded, baseUrl, username, password])
 
   useEffect(() => { fetchVmrs() }, [fetchVmrs])
 

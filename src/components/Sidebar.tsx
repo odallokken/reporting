@@ -2,12 +2,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { LayoutDashboard, Video, VideoOff, Activity, Settings, ScrollText, LogOut } from 'lucide-react'
+import { LayoutDashboard, Video, VideoOff, Calendar, Activity, Settings, ScrollText, LogOut } from 'lucide-react'
 
 const links = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/vmrs/static', label: 'Static VMRs', icon: Video },
   { href: '/vmrs/dynamic', label: 'Dynamic VMRs', icon: VideoOff },
+  { href: '/vmrs/scheduled', label: 'Scheduled VMR calls', icon: Calendar },
   { href: '/realtime', label: 'Real-time', icon: Activity },
   { href: '/logs', label: 'Logs', icon: ScrollText },
   { href: '/settings', label: 'Settings', icon: Settings },

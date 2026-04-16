@@ -2,23 +2,49 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { subDays } from 'date-fns'
 import { getShortConferenceIds } from '@/lib/settings'
+import { fetchStaticVmrNames } from '@/lib/pexip'
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const search = searchParams.get('search') ?? ''
-    const page = parseInt(searchParams.get('page') ?? '1')
-    const limit = parseInt(searchParams.get('limit') ?? '20')
-    const sortBy = searchParams.get('sortBy') ?? 'lastUsedAt'
-    const sortOrder = (searchParams.get('sortOrder') ?? 'desc') as 'asc' | 'desc'
-    const staleDays = parseInt(searchParams.get('staleDays') ?? '30')
+    const body = await request.json() as {
+      search?: string
+      page?: number
+      limit?: number
+      sortBy?: string
+      sortOrder?: 'asc' | 'desc'
+      staleDays?: number
+      baseUrl?: string
+      username?: string
+      password?: string
+    }
+    const search = body.search ?? ''
+    const page = body.page ?? 1
+    const limit = body.limit ?? 20
+    const sortBy = body.sortBy ?? 'lastUsedAt'
+    const sortOrder = body.sortOrder ?? 'desc'
+    const staleDays = body.staleDays ?? 30
 
     const skip = (page - 1) * limit
     const staleThreshold = subDays(new Date(), staleDays)
     const excludedIds = await getShortConferenceIds()
     const confFilter = excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}
 
-    const where = search ? { name: { contains: search } } : {}
+    // Fetch static VMR names from Pexip to exclude them from dynamic results
+    const staticVmrNames = await fetchStaticVmrNames(
+      body.baseUrl ?? '',
+      body.username ?? '',
+      body.password ?? ''
+    )
+
+    // Build where clause: exclude static VMR names and optionally filter by search
+    const conditions = []
+    if (staticVmrNames.length > 0) {
+      conditions.push({ name: { notIn: staticVmrNames } })
+    }
+    if (search) {
+      conditions.push({ name: { contains: search } })
+    }
+    const where = conditions.length > 0 ? { AND: conditions } : {}
 
     const [vmrs, total] = await Promise.all([
       prisma.vMR.findMany({
