@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { StatsCard } from '@/components/StatsCard'
 import { StaticVmrCountCard } from '@/components/StaticVmrCountCard'
 import { ActivityLineChart } from '@/components/charts/ActivityLineChart'

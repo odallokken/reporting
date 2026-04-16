@@ -195,9 +195,19 @@ export async function POST(request: NextRequest) {
 
     let imported = 0
     let skipped = 0
+    const MIN_CONFERENCE_DURATION_SECONDS = 30
 
     for (const conf of conferences) {
       try {
+        // Skip conferences with duration less than 30 seconds to filter out SIP scanner calls
+        if (conf.start_time && conf.end_time) {
+          const durationSeconds = (new Date(conf.end_time).getTime() - new Date(conf.start_time).getTime()) / 1000
+          if (durationSeconds < MIN_CONFERENCE_DURATION_SECONDS) {
+            skipped++
+            continue
+          }
+        }
+
         const vmrName = conf.name ?? 'Unknown'
         const startTime = conf.start_time ? new Date(conf.start_time) : null
         const existingVmr = await prisma.vMR.findUnique({ where: { name: vmrName } })
