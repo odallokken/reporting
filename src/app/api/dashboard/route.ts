@@ -3,27 +3,32 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { format, subDays } from 'date-fns'
+import { getShortConferenceIds } from '@/lib/settings'
 
 export async function GET() {
   try {
     const thirtyDaysAgo = subDays(new Date(), 30)
+    const excludedIds = await getShortConferenceIds()
+    const excludeFilter = excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}
 
     const [activeVmrs, activeConferences, activeParticipants, recentActivity, recentConferences] = await Promise.all([
       prisma.vMR.count({ where: { lastUsedAt: { gte: thirtyDaysAgo } } }),
       prisma.conference.count({
         where: {
           endTime: null,
-          participants: { some: { leaveTime: null } }
+          participants: { some: { leaveTime: null } },
+          ...excludeFilter
         }
       }),
-      prisma.participant.count({ where: { leaveTime: null, conference: { endTime: null } } }),
+      prisma.participant.count({ where: { leaveTime: null, conference: { endTime: null, ...excludeFilter } } }),
       prisma.participant.findMany({
         take: 10,
         orderBy: { joinTime: 'desc' },
+        where: { conference: excludeFilter },
         include: { conference: { include: { vmr: true } } }
       }),
       prisma.conference.findMany({
-        where: { startTime: { gte: thirtyDaysAgo } },
+        where: { startTime: { gte: thirtyDaysAgo }, ...excludeFilter },
         select: { startTime: true }
       })
     ])

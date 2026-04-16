@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { subDays, format } from 'date-fns'
+import { getShortConferenceIds } from '@/lib/settings'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const fmt = searchParams.get('format') ?? 'csv'
     const staleThreshold = subDays(new Date(), 30)
+    const excludedIds = await getShortConferenceIds()
+    const confFilter = excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}
 
     const vmrs = await prisma.vMR.findMany({
       orderBy: { lastUsedAt: 'desc' },
       include: {
-        _count: { select: { conferences: true } },
         conferences: {
+          where: confFilter,
           select: { _count: { select: { participants: true } } }
         }
       }
@@ -23,7 +26,7 @@ export async function GET(request: NextRequest) {
       name: vmr.name,
       lastUsedAt: vmr.lastUsedAt ? format(new Date(vmr.lastUsedAt), 'yyyy-MM-dd HH:mm:ss') : '',
       createdAt: format(new Date(vmr.createdAt), 'yyyy-MM-dd HH:mm:ss'),
-      totalCalls: vmr._count.conferences,
+      totalCalls: vmr.conferences.length,
       totalParticipants: vmr.conferences.reduce((sum, c) => sum + c._count.participants, 0),
       isStale: !vmr.lastUsedAt || vmr.lastUsedAt < staleThreshold ? 'Yes' : 'No'
     }))

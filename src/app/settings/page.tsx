@@ -55,14 +55,27 @@ export default function SettingsPage() {
         const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY)
         let savedUsername = ''
         if (raw) {
-          const saved = JSON.parse(raw) as { baseUrl?: string; username?: string; excludeShortConferences?: boolean; minDurationSeconds?: string }
+          const saved = JSON.parse(raw) as { baseUrl?: string; username?: string }
           if (saved.baseUrl) setBaseUrl(saved.baseUrl)
           if (saved.username) {
             savedUsername = saved.username
             setUsername(saved.username)
           }
-          if (saved.excludeShortConferences !== undefined) setExcludeShortConferences(saved.excludeShortConferences)
-          if (saved.minDurationSeconds) setMinDurationSeconds(saved.minDurationSeconds)
+        }
+
+        // Load threshold setting from server
+        try {
+          const settingsRes = await fetch('/api/settings')
+          if (settingsRes.ok) {
+            const serverSettings = await settingsRes.json() as Record<string, string>
+            const stored = parseInt(serverSettings.minDurationSeconds ?? '0')
+            if (stored > 0) {
+              setExcludeShortConferences(true)
+              setMinDurationSeconds(String(stored))
+            }
+          }
+        } catch {
+          // ignore — server settings not available
         }
 
         const savedPassword = window.sessionStorage.getItem(`${SETTINGS_STORAGE_KEY}-pw`)
@@ -153,9 +166,17 @@ export default function SettingsPage() {
     try {
       window.localStorage.setItem(
         SETTINGS_STORAGE_KEY,
-        JSON.stringify({ baseUrl, username, excludeShortConferences, minDurationSeconds })
+        JSON.stringify({ baseUrl, username })
       )
       window.sessionStorage.setItem(`${SETTINGS_STORAGE_KEY}-pw`, password)
+
+      // Save threshold to server
+      const effectiveMinDuration = excludeShortConferences ? (parseInt(minDurationSeconds, 10) || 0) : 0
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ minDurationSeconds: String(effectiveMinDuration) })
+      })
 
       const PasswordCredentialCtor = (window as { PasswordCredential?: BrowserPasswordCredentialConstructor }).PasswordCredential
       if ('credentials' in navigator && PasswordCredentialCtor && password) {
