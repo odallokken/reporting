@@ -71,7 +71,7 @@ export default function SetupPage() {
       <div className="w-full max-w-sm">
         <div className="glass-card rounded-3xl shadow-glass-lg p-8">
           <div className="flex flex-col items-center mb-6">
-            <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 p-3.5 rounded-xl mb-4 shadow-lg shadow-emerald-500/20">
+            <div className="bg-gradient-to-br from-primary-500 to-primary-700 p-3.5 rounded-xl mb-4 shadow-lg shadow-primary-500/20">
               <UserPlus size={24} className="text-white" />
             </div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">Welcome</h1>
@@ -88,7 +88,7 @@ export default function SetupPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-alt/60 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500"
+                className="w-full rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-alt/60 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500"
                 placeholder="admin"
                 required
                 autoFocus
@@ -104,7 +104,7 @@ export default function SetupPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-alt/60 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500"
+                className="w-full rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-alt/60 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500"
                 placeholder="Min. 8 characters"
                 required
                 autoComplete="new-password"
@@ -119,7 +119,7 @@ export default function SetupPage() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-alt/60 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500"
+                className="w-full rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-alt/60 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500"
                 required
                 autoComplete="new-password"
               />
@@ -134,7 +134,7 @@ export default function SetupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white text-sm font-medium rounded-xl px-4 py-2.5 hover:from-emerald-700 hover:to-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-surface-dark-card disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+              className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white text-sm font-medium rounded-xl px-4 py-2.5 hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-surface-dark-card disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
             >
               {loading ? 'Creating account…' : 'Create Admin Account'}
             </button>
