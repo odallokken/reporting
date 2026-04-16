@@ -98,10 +98,11 @@ function buildManagementApiUrl(baseUrl: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json() as { baseUrl: string; username: string; password: string }
+    const body = await request.json() as { baseUrl: string; username: string; password: string; minDurationSeconds?: number }
     const baseUrl = body.baseUrl?.trim()
     const username = body.username?.trim()
     const password = body.password ?? ''
+    const minDurationSeconds = typeof body.minDurationSeconds === 'number' && body.minDurationSeconds > 0 ? body.minDurationSeconds : 0
 
     if (!baseUrl || !username || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -195,14 +196,13 @@ export async function POST(request: NextRequest) {
 
     let imported = 0
     let skipped = 0
-    const MIN_CONFERENCE_DURATION_SECONDS = 30
 
     for (const conf of conferences) {
       try {
-        // Skip conferences with duration less than 30 seconds to filter out SIP scanner calls
-        if (conf.start_time && conf.end_time) {
+        // Skip conferences with duration less than threshold to filter out SIP scanner calls
+        if (minDurationSeconds > 0 && conf.start_time && conf.end_time) {
           const durationSeconds = (new Date(conf.end_time).getTime() - new Date(conf.start_time).getTime()) / 1000
-          if (durationSeconds < MIN_CONFERENCE_DURATION_SECONDS) {
+          if (durationSeconds < minDurationSeconds) {
             skipped++
             continue
           }
