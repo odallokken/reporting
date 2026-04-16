@@ -229,7 +229,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="max-w-2xl space-y-6">
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Event Sink URL</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Configure this URL in Pexip Infinity Management Node under <strong>Platform &gt; Global Settings &gt; Event sink</strong>.
@@ -240,7 +240,7 @@ export default function SettingsPage() {
             </code>
             <button
               onClick={handleCopy}
-              className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 transition-colors"
+              className="flex items-center gap-2 px-3 py-2.5 border border-gray-200/60 dark:border-gray-700/40 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 transition-colors"
             >
               {copied ? <CheckCircle size={16} className="text-emerald-500" /> : <Copy size={16} />}
               {copied ? 'Copied!' : 'Copy'}
@@ -248,7 +248,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Import CDRs from Pexip Management API</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
             Import historical conference data from your Pexip Infinity Management Node.
@@ -261,7 +261,7 @@ export default function SettingsPage() {
                 value={baseUrl}
                 onChange={e => setBaseUrl(e.target.value)}
                 placeholder="https://pexip.example.com"
-                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark-alt rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
+                className="w-full px-3 py-2.5 border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-alt/60 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Enter the Management Node URL only, for example <span className="font-mono">https://pexip.example.com</span>, without <span className="font-mono">/admin</span> or any other path.
@@ -275,7 +275,7 @@ export default function SettingsPage() {
                 onChange={e => setUsername(e.target.value)}
                 placeholder="admin"
                 autoComplete="username"
-                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark-alt rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
+                className="w-full px-3 py-2.5 border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-alt/60 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
               />
             </div>
             <div>
@@ -286,7 +286,7 @@ export default function SettingsPage() {
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 autoComplete="current-password"
-                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark-alt rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
+                className="w-full px-3 py-2.5 border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-alt/60 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
               />
             </div>
             <div>
@@ -307,7 +307,7 @@ export default function SettingsPage() {
                     min="1"
                     value={minDurationSeconds}
                     onChange={e => setMinDurationSeconds(e.target.value)}
-                    className="w-32 px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark-alt rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-32 px-3 py-2.5 border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-alt/60 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     Conferences shorter than this will be excluded (e.g. to filter SIP scanner calls).
@@ -319,14 +319,14 @@ export default function SettingsPage() {
               <button
                 onClick={handleSave}
                 disabled={!baseUrl || !username}
-                className="w-full py-2.5 px-4 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 rounded-lg font-medium text-sm hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full py-2.5 px-4 border border-gray-200/60 dark:border-gray-700/40 text-gray-800 dark:text-gray-200 rounded-xl font-medium text-sm hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Save credentials
               </button>
               <button
                 onClick={handleImport}
                 disabled={importing || !baseUrl || !hasImportFields}
-                className="w-full py-2.5 px-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg font-medium text-sm hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl font-medium text-sm hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
               >
                 {importing ? 'Importing...' : 'Import CDRs'}
               </button>
@@ -357,7 +357,7 @@ export default function SettingsPage() {
         </div>
 
         {isAdmin && (
-          <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+          <div className="glass-card rounded-2xl shadow-glass p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">User Management</h2>
               <button
@@ -378,7 +378,7 @@ export default function SettingsPage() {
                       type="text"
                       value={newUsername}
                       onChange={e => setNewUsername(e.target.value)}
-                      className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark-alt rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-3 py-2.5 border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-alt/60 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                       required
                     />
                   </div>
@@ -389,7 +389,7 @@ export default function SettingsPage() {
                       value={newPassword}
                       onChange={e => setNewPassword(e.target.value)}
                       placeholder="Min. 8 characters"
-                      className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark-alt rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
+                      className="w-full px-3 py-2.5 border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-alt/60 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 placeholder-gray-400 dark:placeholder-gray-500"
                       required
                     />
                   </div>
@@ -398,7 +398,7 @@ export default function SettingsPage() {
                     <select
                       value={newRole}
                       onChange={e => setNewRole(e.target.value)}
-                      className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark-alt rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-3 py-2.5 border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-alt/60 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                     >
                       <option value="admin">Admin</option>
                       <option value="viewer">Viewer</option>
@@ -412,14 +412,14 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={userLoading}
-                    className="px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white text-sm font-medium rounded-lg hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 transition-all shadow-sm"
+                    className="px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white text-sm font-medium rounded-xl hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 transition-all shadow-sm"
                   >
                     {userLoading ? 'Creating…' : 'Create User'}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setShowAddUser(false); setUserError('') }}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                    className="px-4 py-2 border border-gray-200/60 dark:border-gray-700/40 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                   >
                     Cancel
                   </button>
@@ -430,7 +430,7 @@ export default function SettingsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left border-b border-gray-200 dark:border-gray-700/50">
+                  <tr className="text-left border-b border-gray-200/60 dark:border-gray-700/30">
                     <th className="pb-2 font-medium text-gray-600 dark:text-gray-400">Username</th>
                     <th className="pb-2 font-medium text-gray-600 dark:text-gray-400">Role</th>
                     <th className="pb-2 font-medium text-gray-600 dark:text-gray-400">Created</th>

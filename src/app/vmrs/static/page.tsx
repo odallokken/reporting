@@ -124,8 +124,8 @@ export default function StaticVMRsPage() {
       )}
 
       {!missingCredentials && (
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700/50">
+        <div className="glass-card rounded-2xl shadow-glass">
+          <div className="p-4 border-b border-gray-200/60 dark:border-gray-700/30">
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <input

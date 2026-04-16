@@ -51,7 +51,7 @@ export default function AnalyticsPage() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6 h-[380px] animate-pulse" />
+            <div key={i} className="glass-card rounded-2xl shadow-glass p-6 h-[380px] animate-pulse" />
           ))}
         </div>
       </div>
@@ -75,18 +75,18 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Peak Concurrency */}
-      <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6 mb-8">
+      <div className="glass-card rounded-2xl shadow-glass p-6 mb-8">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Peak Concurrent Usage (30 Days)</h2>
         <PeakConcurrencyChart data={data.peakConcurrency} />
       </div>
 
       {/* Protocol + Vendor */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Participants by Protocol</h2>
           <GenericPieChart data={data.protocolBreakdown} />
         </div>
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Participants by Vendor / Endpoint</h2>
           <GenericPieChart data={data.vendorBreakdown} />
         </div>
@@ -94,11 +94,11 @@ export default function AnalyticsPage() {
 
       {/* Call Direction + Encryption */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Call Direction</h2>
           <GenericPieChart data={data.callDirectionBreakdown} colors={DIRECTION_COLORS} />
         </div>
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Encryption Compliance</h2>
           <GenericPieChart data={data.encryptionBreakdown} colors={ENCRYPTION_COLORS} />
         </div>
@@ -106,18 +106,18 @@ export default function AnalyticsPage() {
 
       {/* Conference Duration + Disconnect Reasons */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Conference Duration Distribution</h2>
-          <GenericBarChart data={data.durationDistribution} color="#7c3aed" label="Conferences" />
+          <GenericBarChart data={data.durationDistribution} color="#05c8aa" label="Conferences" />
         </div>
-        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+        <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Disconnect Reasons</h2>
           <GenericBarChart data={data.disconnectReasons} color="#ef4444" label="Participants" />
         </div>
       </div>
 
       {/* Top Users table */}
-      <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+      <div className="glass-card rounded-2xl shadow-glass p-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top Participants</h2>
         {data.topUsers.length === 0 ? (
           <p className="text-gray-500 dark:text-gray-400 text-sm">No participant data available</p>

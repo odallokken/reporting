@@ -36,10 +36,10 @@ export function ActivityLineChart({ data }: ActivityLineChartProps) {
         <Line
           type="monotone"
           dataKey="count"
-          stroke="#7c3aed"
+          stroke="#05c8aa"
           strokeWidth={2.5}
           dot={false}
-          activeDot={{ r: 5, fill: '#7c3aed', stroke: '#fff', strokeWidth: 2 }}
+          activeDot={{ r: 5, fill: '#05c8aa', stroke: '#fff', strokeWidth: 2 }}
           name="Conferences"
         />
       </LineChart>

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { Sidebar } from '@/components/Sidebar'
+import { TopNavbar } from '@/components/TopNavbar'
 import { AuthProvider } from '@/components/AuthProvider'
 import { ThemeProvider } from '@/components/ThemeProvider'
 
@@ -15,9 +15,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans antialiased">
         <AuthProvider>
           <ThemeProvider>
-            <div className="flex min-h-screen bg-slate-100 dark:bg-surface-dark">
-              <Sidebar />
-              <main className="flex-1 overflow-auto">
+            <div className="min-h-screen bg-surface dark:bg-surface-dark">
+              <TopNavbar />
+              <main className="overflow-auto">
                 {children}
               </main>
             </div>

@@ -106,13 +106,13 @@ export default function SearchPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name, alias, IP address, call UUID, or vendor..."
-              className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-surface-dark-card text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 text-sm"
+              className="w-full pl-11 pr-4 py-3 rounded-2xl border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-card/60 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 text-sm"
             />
           </div>
           <button
             type="submit"
             disabled={loading || query.trim().length < 2}
-            className="px-6 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white rounded-xl text-sm font-medium transition-colors"
+            className="px-6 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white rounded-2xl text-sm font-medium transition-colors"
           >
             {loading ? 'Searching...' : 'Search'}
           </button>
@@ -131,7 +131,7 @@ export default function SearchPage() {
                 <button
                   onClick={() => goToPage(page - 1)}
                   disabled={page <= 1}
-                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-40 transition-colors"
+                  className="p-2 rounded-xl border border-gray-200/60 dark:border-gray-700/40 hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-40 transition-colors"
                 >
                   <ChevronLeft size={16} className="text-gray-600 dark:text-gray-400" />
                 </button>
@@ -141,7 +141,7 @@ export default function SearchPage() {
                 <button
                   onClick={() => goToPage(page + 1)}
                   disabled={page >= data.totalPages}
-                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-40 transition-colors"
+                  className="p-2 rounded-xl border border-gray-200/60 dark:border-gray-700/40 hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-40 transition-colors"
                 >
                   <ChevronRight size={16} className="text-gray-600 dark:text-gray-400" />
                 </button>
@@ -150,7 +150,7 @@ export default function SearchPage() {
           </div>
 
           {data.results.length > 0 && (
-            <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 overflow-hidden">
+            <div className="glass-card rounded-2xl shadow-glass overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead>

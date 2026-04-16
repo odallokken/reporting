@@ -74,8 +74,8 @@ export default function DynamicVMRsPage() {
         </a>
       </div>
 
-      <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700/50">
+      <div className="glass-card rounded-2xl shadow-glass">
+        <div className="p-4 border-b border-gray-200/60 dark:border-gray-700/30">
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <input
@@ -141,7 +141,7 @@ export default function DynamicVMRsPage() {
         </div>
 
         {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700/50 flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-gray-200/60 dark:border-gray-700/30 flex items-center justify-between">
             <p className="text-sm text-gray-500 dark:text-gray-400">Page {page} of {totalPages}</p>
             <div className="flex gap-2">
               <button

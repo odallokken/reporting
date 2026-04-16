@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --background: #f1f5f9;
+  --background: #f4f7fa;
   --foreground: #1e293b;
   --chart-grid: #e5e7eb;
   --chart-text: #6b7280;
@@ -13,12 +13,12 @@
 }
 
 .dark {
-  --background: #1e1e2e;
+  --background: #0f1729;
   --foreground: #e2e8f0;
-  --chart-grid: #374151;
+  --chart-grid: #2a3a52;
   --chart-text: #9ca3af;
-  --chart-border: #4b5563;
-  --chart-tooltip-bg: #2a2a3c;
+  --chart-border: #2a3a52;
+  --chart-tooltip-bg: #1a2538;
   --chart-tooltip-text: #e2e8f0;
 }
 
@@ -34,25 +34,40 @@ body {
   }
 }
 
+/* Glassmorphism card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.dark .glass-card {
+  background: rgba(26, 37, 56, 0.75);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 /* Smooth scrollbar for dark mode */
 .dark ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 .dark ::-webkit-scrollbar-track {
-  background: #2a2a3c;
+  background: #162032;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: #4a4a5c;
+  background: #2a3a52;
   border-radius: 4px;
 }
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #5a5a6c;
+  background: #3a4a62;
 }
 
 /* Custom focus ring */
 *:focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid #05c8aa;
   outline-offset: 2px;
 }
 

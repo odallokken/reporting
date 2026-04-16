@@ -11,7 +11,7 @@ interface GenericPieChartProps {
   colors?: string[]
 }
 
-const DEFAULT_COLORS = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316']
+const DEFAULT_COLORS = ['#05c8aa', '#3b8eff', '#10b981', '#f59e0b', '#ef4444', '#1de4c3', '#ec4899', '#06b6d4', '#84cc16', '#f97316']
 
 export function GenericPieChart({ data, colors = DEFAULT_COLORS }: GenericPieChartProps) {
   const filtered = data.filter((d) => d.value > 0)

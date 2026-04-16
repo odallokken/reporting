@@ -52,16 +52,16 @@ export default function LoginPage() {
 
   if (checkingSetup) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-surface-dark">
+      <div className="min-h-screen flex items-center justify-center bg-surface dark:bg-surface-dark">
         <p className="text-gray-500 dark:text-gray-400">Loading…</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-surface-dark">
+    <div className="min-h-screen flex items-center justify-center bg-surface dark:bg-surface-dark">
       <div className="w-full max-w-sm">
-        <div className="bg-white dark:bg-surface-dark-card rounded-2xl shadow-lg border border-gray-200/80 dark:border-gray-700/50 p-8">
+        <div className="glass-card rounded-3xl shadow-glass-lg p-8">
           <div className="flex flex-col items-center mb-6">
             <div className="bg-gradient-to-br from-primary-500 to-primary-700 p-3.5 rounded-xl mb-4 shadow-lg shadow-primary-500/20">
               <Lock size={24} className="text-white" />
@@ -80,7 +80,7 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-surface-dark-alt px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500"
+                className="w-full rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-alt/60 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500"
                 required
                 autoFocus
                 autoComplete="username"
@@ -95,7 +95,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-surface-dark-alt px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500"
+                className="w-full rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-alt/60 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500"
                 required
                 autoComplete="current-password"
               />
@@ -110,7 +110,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white text-sm font-medium rounded-lg px-4 py-2.5 hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-surface-dark-card disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+              className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white text-sm font-medium rounded-xl px-4 py-2.5 hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-surface-dark-card disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
             >
               {loading ? 'Signing in…' : 'Sign in'}
             </button>

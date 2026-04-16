@@ -43,8 +43,8 @@ export function PeakConcurrencyChart({ data }: PeakConcurrencyChartProps) {
           height={36}
           formatter={(value: string) => <span className="text-xs text-gray-600 dark:text-gray-400">{value}</span>}
         />
-        <Line type="monotone" dataKey="peakConferences" stroke="#7c3aed" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} name="Peak Conferences" />
-        <Line type="monotone" dataKey="peakParticipants" stroke="#3b82f6" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} name="Peak Participants" />
+        <Line type="monotone" dataKey="peakConferences" stroke="#05c8aa" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} name="Peak Conferences" />
+        <Line type="monotone" dataKey="peakParticipants" stroke="#3b8eff" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} name="Peak Participants" />
       </LineChart>
     </ResponsiveContainer>
   )

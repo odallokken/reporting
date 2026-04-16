@@ -69,23 +69,23 @@ export default function LogsPage() {
           <select
             value={levelFilter}
             onChange={e => { setLevelFilter(e.target.value); setPage(1) }}
-            className="px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-surface-dark-card rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="px-3 py-2 border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-card/60 rounded-xl text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="">All levels</option>
             <option value="info">Info</option>
             <option value="warn">Warning</option>
             <option value="error">Error</option>
           </select>
-          <button onClick={fetchLogs} className="p-2 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors" title="Refresh">
+          <button onClick={fetchLogs} className="p-2 border border-gray-200/60 dark:border-gray-700/40 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors" title="Refresh">
             <RefreshCw size={16} className={loading ? 'animate-spin text-gray-400' : 'text-gray-600 dark:text-gray-400'} />
           </button>
-          <button onClick={handleClear} className="p-2 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 text-red-500 dark:text-red-400 transition-colors" title="Clear all logs">
+          <button onClick={handleClear} className="p-2 border border-gray-200/60 dark:border-gray-700/40 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 text-red-500 dark:text-red-400 transition-colors" title="Clear all logs">
             <Trash2 size={16} />
           </button>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 overflow-hidden">
+      <div className="glass-card rounded-2xl shadow-glass overflow-hidden">
         {fetchError ? (
           <div className="p-12 text-center text-red-500 dark:text-red-400 text-sm">Failed to load logs: {fetchError}</div>
         ) : logs.length === 0 && !loading ? (
@@ -135,7 +135,7 @@ export default function LogsPage() {
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="px-3 py-1 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1 border border-gray-200/60 dark:border-gray-700/40 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Previous
             </button>
@@ -143,7 +143,7 @@ export default function LogsPage() {
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="px-3 py-1 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1 border border-gray-200/60 dark:border-gray-700/40 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Next
             </button>

@@ -13,7 +13,7 @@ interface GenericBarChartProps {
   label?: string
 }
 
-export function GenericBarChart({ data, color = '#7c3aed', height = 300, label = 'Count' }: GenericBarChartProps) {
+export function GenericBarChart({ data, color = '#05c8aa', height = 300, label = 'Count' }: GenericBarChartProps) {
   if (data.length === 0) {
     return <div className="flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm" style={{ height }}>No data available</div>
   }

@@ -30,7 +30,7 @@ export function TopVMRsBarChart({ data }: { data: VMRBarData[] }) {
           }}
           labelStyle={{ fontWeight: 600 }}
         />
-        <Bar dataKey="count" fill="#7c3aed" radius={[6, 6, 0, 0]} name="Conferences" />
+        <Bar dataKey="count" fill="#05c8aa" radius={[6, 6, 0, 0]} name="Conferences" />
       </BarChart>
     </ResponsiveContainer>
   )
