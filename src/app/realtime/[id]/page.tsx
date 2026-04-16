@@ -109,7 +109,7 @@ function DetailRow({ label, value, icon: Icon }: { label: string; value: string 
     <div className="flex items-start gap-3 py-3 border-b border-gray-100 dark:border-gray-700/30 last:border-0">
       {Icon && <Icon size={16} className="text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0" />}
       <div className="min-w-0">
-        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{label}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
         <p className="text-sm text-gray-900 dark:text-gray-100 break-all">{value || '-'}</p>
       </div>
     </div>
@@ -209,13 +209,13 @@ export default function ParticipantDetailPage() {
     return () => clearInterval(interval)
   }, [participant, params.id])
 
-  if (loading) return <div className="p-8 text-gray-500 dark:text-gray-400 dark:text-gray-500">Loading...</div>
+  if (loading) return <div className="p-8 text-gray-500 dark:text-gray-400">Loading...</div>
   if (error || !participant) return (
     <div className="p-8">
       <Link href="/realtime" className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4 transition-colors">
         <ArrowLeft size={16} /> Back to Real-time
       </Link>
-      <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">{error || 'Participant not found'}</p>
+      <p className="text-gray-500 dark:text-gray-400">{error || 'Participant not found'}</p>
     </div>
   )
 
@@ -236,7 +236,7 @@ export default function ParticipantDetailPage() {
             {participant.name || 'Unknown Participant'}
           </h1>
           <div className="flex items-center gap-2 mt-1">
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${isActive ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
               {isActive ? 'Connected' : 'Disconnected'}
             </span>
@@ -410,7 +410,7 @@ export default function ParticipantDetailPage() {
           <div className="space-y-0">
             <div className="flex items-center gap-3 py-3 border-b border-gray-100">
               <div className="min-w-0">
-                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">Muted</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Muted</p>
                 <p className="text-sm text-gray-900">
                   {participant.isMuted === true && <span className="inline-flex items-center gap-1 text-red-600"><span className="w-2 h-2 rounded-full bg-red-500" /> Yes</span>}
                   {participant.isMuted === false && <span className="inline-flex items-center gap-1 text-green-600"><span className="w-2 h-2 rounded-full bg-green-500" /> No</span>}
@@ -420,10 +420,10 @@ export default function ParticipantDetailPage() {
             </div>
             <div className="flex items-center gap-3 py-3 border-b border-gray-100">
               <div className="min-w-0">
-                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">Presenting</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Presenting</p>
                 <p className="text-sm text-gray-900">
                   {participant.isPresenting === true && <span className="inline-flex items-center gap-1 text-blue-600"><span className="w-2 h-2 rounded-full bg-blue-500" /> Yes</span>}
-                  {participant.isPresenting === false && <span className="inline-flex items-center gap-1 text-gray-600 dark:text-gray-400 dark:text-gray-500"><span className="w-2 h-2 rounded-full bg-gray-400" /> No</span>}
+                  {participant.isPresenting === false && <span className="inline-flex items-center gap-1 text-gray-600 dark:text-gray-400"><span className="w-2 h-2 rounded-full bg-gray-400" /> No</span>}
                   {participant.isPresenting == null && '-'}
                 </p>
               </div>
@@ -467,7 +467,7 @@ export default function ParticipantDetailPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-lg">{streamTypeIcon(ms.streamType)}</span>
                   <span className="text-sm font-semibold text-gray-900 dark:text-white capitalize">{ms.streamType}</span>
-                  {ms.streamId && <span className="text-xs text-gray-400 dark:text-gray-500">#{ms.streamId}</span>}
+                  {ms.streamId && <span className="text-xs text-gray-400">#{ms.streamId}</span>}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
@@ -478,7 +478,7 @@ export default function ParticipantDetailPage() {
                     {ms.rxBitrate != null && <p className="text-gray-700">Bitrate: {ms.rxBitrate} kbps</p>}
                     <p className="text-gray-700">
                       Loss: {ms.rxPacketLoss != null ? `${ms.rxPacketLoss.toFixed(2)}%` : '-'}
-                      {ms.rxPacketsLost != null && <span className="text-gray-400 dark:text-gray-500"> ({ms.rxPacketsLost} pkts)</span>}
+                      {ms.rxPacketsLost != null && <span className="text-gray-400"> ({ms.rxPacketsLost} pkts)</span>}
                     </p>
                   </div>
                   <div>
@@ -489,7 +489,7 @@ export default function ParticipantDetailPage() {
                     {ms.txBitrate != null && <p className="text-gray-700">Bitrate: {ms.txBitrate} kbps</p>}
                     <p className="text-gray-700">
                       Loss: {ms.txPacketLoss != null ? `${ms.txPacketLoss.toFixed(2)}%` : '-'}
-                      {ms.txPacketsLost != null && <span className="text-gray-400 dark:text-gray-500"> ({ms.txPacketsLost} pkts)</span>}
+                      {ms.txPacketsLost != null && <span className="text-gray-400"> ({ms.txPacketsLost} pkts)</span>}
                     </p>
                   </div>
                 </div>
@@ -526,9 +526,9 @@ export default function ParticipantDetailPage() {
                       {qw.qualityWas && qw.qualityNow ? (
                         <span className="inline-flex items-center gap-1">
                           <span className={`w-1.5 h-1.5 rounded-full ${qualityDot(qw.qualityWas)}`} />
-                          <span className="text-gray-400 dark:text-gray-500">→</span>
+                          <span className="text-gray-400">→</span>
                           <span className={`w-1.5 h-1.5 rounded-full ${qualityDot(qw.qualityNow)}`} />
-                          <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500">{qualityLabel(qw.qualityNow)}</span>
+                          <span className="text-gray-600 dark:text-gray-400">{qualityLabel(qw.qualityNow)}</span>
                         </span>
                       ) : '-'}
                     </td>
