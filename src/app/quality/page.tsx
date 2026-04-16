@@ -153,7 +153,7 @@ export default function QualityPage() {
               <p className="text-3xl font-bold text-amber-600 dark:text-amber-400 mt-2">
                 {totalPacketLoss > 0 ? Math.round(((data.packetLossBuckets.warning + data.packetLossBuckets.bad) / totalPacketLoss) * 100) : 0}%
               </p>
-              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Streams &gt; 0.2% loss</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{'Streams > 0.2% loss'}</p>
             </div>
             <div className="bg-amber-50 dark:bg-amber-500/10 p-3 rounded-xl">
               <AlertTriangle size={22} className="text-amber-600 dark:text-amber-400" />
