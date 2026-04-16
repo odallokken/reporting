@@ -5,8 +5,59 @@ import { Search, Download, ChevronUp, ChevronDown } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/utils'
 import type { VMRWithStats } from '@/lib/types'
 
+const SETTINGS_STORAGE_KEY = 'pexip-basic-import-settings-v1'
+
+interface BrowserCredentialStore {
+  get: (options?: unknown) => Promise<{ id?: string; password?: string } | null>
+}
+
+function useCredentials() {
+  const [baseUrl, setBaseUrl] = useState('')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY)
+        let savedUsername = ''
+        if (raw) {
+          const saved = JSON.parse(raw) as { baseUrl?: string; username?: string }
+          if (saved.baseUrl) setBaseUrl(saved.baseUrl)
+          if (saved.username) {
+            savedUsername = saved.username
+            setUsername(saved.username)
+          }
+        }
+
+        const savedPassword = window.sessionStorage.getItem(`${SETTINGS_STORAGE_KEY}-pw`)
+        if (savedPassword) setPassword(savedPassword)
+
+        if ('credentials' in navigator) {
+          const credential = await (navigator.credentials as BrowserCredentialStore).get({
+            password: true,
+            mediation: 'optional'
+          })
+          if (credential?.id && !savedUsername) setUsername(credential.id)
+          if (credential?.password) setPassword(credential.password)
+        }
+      } catch {
+        // ignore
+      } finally {
+        setLoaded(true)
+      }
+    }
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return { baseUrl, username, password, loaded }
+}
+
 export default function DynamicVMRsPage() {
   const router = useRouter()
+  const { baseUrl, username, password, loaded } = useCredentials()
   const [vmrs, setVmrs] = useState<VMRWithStats[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -17,23 +68,30 @@ export default function DynamicVMRsPage() {
   const limit = 20
 
   const fetchVmrs = useCallback(async () => {
+    if (!loaded) return
     setLoading(true)
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-        search,
-        sortBy,
-        sortOrder
+      const res = await fetch('/api/vmrs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page,
+          limit,
+          search,
+          sortBy,
+          sortOrder,
+          baseUrl,
+          username,
+          password
+        })
       })
-      const res = await fetch(`/api/vmrs?${params}`)
       const data = await res.json()
       setVmrs(data.vmrs ?? [])
       setTotal(data.total ?? 0)
     } finally {
       setLoading(false)
     }
-  }, [page, search, sortBy, sortOrder])
+  }, [page, search, sortBy, sortOrder, loaded, baseUrl, username, password])
 
   useEffect(() => { fetchVmrs() }, [fetchVmrs])
 
