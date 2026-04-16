@@ -3,18 +3,60 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f1f5f9;
+  --foreground: #1e293b;
+  --chart-grid: #e5e7eb;
+  --chart-text: #6b7280;
+  --chart-border: #e5e7eb;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-text: #1f2937;
+}
+
+.dark {
+  --background: #1e1e2e;
+  --foreground: #e2e8f0;
+  --chart-grid: #374151;
+  --chart-text: #9ca3af;
+  --chart-border: #4b5563;
+  --chart-tooltip-bg: #2a2a3c;
+  --chart-tooltip-text: #e2e8f0;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* Smooth scrollbar for dark mode */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #2a2a3c;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #4a4a5c;
+  border-radius: 4px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #5a5a6c;
+}
+
+/* Custom focus ring */
+*:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+}
+
+/* Transitions for theme switching */
+body, .theme-transition {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }

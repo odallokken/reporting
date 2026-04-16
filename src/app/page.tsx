@@ -83,8 +83,8 @@ export default async function DashboardPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 mt-1">Overview of your Pexip Infinity environment</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Overview of your Pexip Infinity environment</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -95,35 +95,35 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Conference Activity (Last 30 Days)</h2>
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Conference Activity (Last 30 Days)</h2>
           <ActivityLineChart data={data.usageByDay} />
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Top 5 Most Active VMRs</h2>
+        <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 5 Most Active VMRs</h2>
           <TopStaticVMRsBarChart />
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="bg-white dark:bg-surface-dark-card rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-700/50 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
-          <Link href="/logs" className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
+          <Link href="/logs" className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 hover:underline font-medium">
             View all →
           </Link>
         </div>
         {data.recentActivity.length === 0 ? (
-          <p className="text-gray-500 text-sm">No recent activity</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">No recent activity</p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-1">
             {data.recentActivity.map((event) => (
-              <div key={event.id} className="flex items-center gap-4 py-2 border-b border-gray-100 last:border-0">
-                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${event.leaveTime ? 'bg-red-400' : 'bg-green-400'}`} />
+              <div key={event.id} className="flex items-center gap-4 py-3 px-3 rounded-lg border-b border-gray-100 dark:border-gray-700/30 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${event.leaveTime ? 'bg-red-400' : 'bg-emerald-400'}`} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                     {event.name ?? 'Unknown'} — {event.conference.vmr.name}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {event.leaveTime ? 'Left' : 'Joined'} {formatRelativeTime(event.joinTime)}
                   </p>
                 </div>
