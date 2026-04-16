@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { subDays } from 'date-fns'
+import { getShortConferenceIds } from '@/lib/settings'
 
 export async function GET(
   _request: Request,
@@ -11,10 +12,13 @@ export async function GET(
     const id = parseInt(rawId)
     if (isNaN(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
 
+    const excludedIds = await getShortConferenceIds()
+
     const vmr = await prisma.vMR.findUnique({
       where: { id },
       include: {
         conferences: {
+          where: excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {},
           orderBy: { startTime: 'desc' },
           include: {
             _count: { select: { participants: true } },

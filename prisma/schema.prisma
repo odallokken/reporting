@@ -105,6 +105,11 @@ model QualityWindow {
   createdAt       DateTime    @default(now())
 }
 
+model Setting {
+  key   String @id
+  value String
+}
+
 model Log {
   id        Int      @id @default(autoincrement())
   level     String   // info, warn, error

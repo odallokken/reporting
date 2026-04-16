@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { getShortConferenceIds } from '@/lib/settings'
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,6 +12,8 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') ?? '1')
     const limit = parseInt(searchParams.get('limit') ?? '20')
 
+    const excludedIds = await getShortConferenceIds()
+
     const where: Prisma.ConferenceWhereInput = {
       ...(vmrId ? { vmrId: parseInt(vmrId) } : {}),
       ...(from || to ? {
@@ -18,7 +21,8 @@ export async function GET(request: NextRequest) {
           ...(from ? { gte: new Date(from) } : {}),
           ...(to ? { lte: new Date(to) } : {})
         }
-      } : {})
+      } : {}),
+      ...(excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {})
     }
 
     const [conferences, total] = await Promise.all([

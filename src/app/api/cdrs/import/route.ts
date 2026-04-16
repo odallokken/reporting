@@ -98,10 +98,11 @@ function buildManagementApiUrl(baseUrl: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json() as { baseUrl: string; username: string; password: string }
+    const body = await request.json() as { baseUrl: string; username: string; password: string; minDurationSeconds?: number }
     const baseUrl = body.baseUrl?.trim()
     const username = body.username?.trim()
     const password = body.password ?? ''
+    const minDurationSeconds = typeof body.minDurationSeconds === 'number' && body.minDurationSeconds > 0 ? body.minDurationSeconds : 0
 
     if (!baseUrl || !username || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -198,6 +199,15 @@ export async function POST(request: NextRequest) {
 
     for (const conf of conferences) {
       try {
+        // Skip conferences with duration less than threshold to filter out SIP scanner calls
+        if (minDurationSeconds > 0 && conf.start_time && conf.end_time) {
+          const durationSeconds = (new Date(conf.end_time).getTime() - new Date(conf.start_time).getTime()) / 1000
+          if (durationSeconds < minDurationSeconds) {
+            skipped++
+            continue
+          }
+        }
+
         const vmrName = conf.name ?? 'Unknown'
         const startTime = conf.start_time ? new Date(conf.start_time) : null
         const existingVmr = await prisma.vMR.findUnique({ where: { name: vmrName } })

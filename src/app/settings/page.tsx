@@ -25,6 +25,8 @@ export default function SettingsPage() {
   const [importResult, setImportResult] = useState<{ imported?: number; skipped?: number; error?: string } | null>(null)
   const [copied, setCopied] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saved-partial' | 'error' | null>(null)
+  const [excludeShortConferences, setExcludeShortConferences] = useState(false)
+  const [minDurationSeconds, setMinDurationSeconds] = useState('30')
 
   // User management state
   const [users, setUsers] = useState<AppUser[]>([])
@@ -59,6 +61,21 @@ export default function SettingsPage() {
             savedUsername = saved.username
             setUsername(saved.username)
           }
+        }
+
+        // Load threshold setting from server
+        try {
+          const settingsRes = await fetch('/api/settings')
+          if (settingsRes.ok) {
+            const serverSettings = await settingsRes.json() as Record<string, string>
+            const stored = parseInt(serverSettings.minDurationSeconds ?? '0')
+            if (stored > 0) {
+              setExcludeShortConferences(true)
+              setMinDurationSeconds(String(stored))
+            }
+          }
+        } catch {
+          // ignore — server settings not available
         }
 
         const savedPassword = window.sessionStorage.getItem(`${SETTINGS_STORAGE_KEY}-pw`)
@@ -153,6 +170,14 @@ export default function SettingsPage() {
       )
       window.sessionStorage.setItem(`${SETTINGS_STORAGE_KEY}-pw`, password)
 
+      // Save threshold to server
+      const effectiveMinDuration = excludeShortConferences ? (parseInt(minDurationSeconds, 10) || 0) : 0
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ minDurationSeconds: String(effectiveMinDuration) })
+      })
+
       const PasswordCredentialCtor = (window as { PasswordCredential?: BrowserPasswordCredentialConstructor }).PasswordCredential
       if ('credentials' in navigator && PasswordCredentialCtor && password) {
         const credential = new PasswordCredentialCtor({
@@ -179,7 +204,12 @@ export default function SettingsPage() {
       const res = await fetch('/api/cdrs/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ baseUrl, username, password })
+        body: JSON.stringify({
+          baseUrl,
+          username,
+          password,
+          minDurationSeconds: excludeShortConferences ? parseInt(minDurationSeconds, 10) || 0 : 0
+        })
       })
       const data = await res.json()
       setImportResult(data)
@@ -263,6 +293,32 @@ export default function SettingsPage() {
                 autoComplete="current-password"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+            <div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={excludeShortConferences}
+                  onChange={e => setExcludeShortConferences(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">Exclude short conferences</span>
+              </label>
+              {excludeShortConferences && (
+                <div className="mt-2 ml-6">
+                  <label className="block text-sm text-gray-600 mb-1">Minimum duration (seconds)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={minDurationSeconds}
+                    onChange={e => setMinDurationSeconds(e.target.value)}
+                    className="w-32 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Conferences shorter than this will be excluded (e.g. to filter SIP scanner calls).
+                  </p>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button

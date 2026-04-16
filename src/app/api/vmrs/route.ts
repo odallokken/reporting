@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { subDays } from 'date-fns'
+import { getShortConferenceIds } from '@/lib/settings'
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,6 +15,8 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit
     const staleThreshold = subDays(new Date(), staleDays)
+    const excludedIds = await getShortConferenceIds()
+    const confFilter = excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}
 
     const where = search ? { name: { contains: search } } : {}
 
@@ -24,8 +27,8 @@ export async function GET(request: NextRequest) {
         take: limit,
         orderBy: sortBy === 'name' ? { name: sortOrder } : { lastUsedAt: sortOrder },
         include: {
-          _count: { select: { conferences: true } },
           conferences: {
+            where: confFilter,
             select: {
               _count: { select: { participants: true } }
             }
@@ -40,7 +43,7 @@ export async function GET(request: NextRequest) {
       name: vmr.name,
       lastUsedAt: vmr.lastUsedAt?.toISOString() ?? null,
       createdAt: vmr.createdAt.toISOString(),
-      totalCalls: vmr._count.conferences,
+      totalCalls: vmr.conferences.length,
       totalParticipants: vmr.conferences.reduce((sum, c) => sum + c._count.participants, 0),
       isStale: !vmr.lastUsedAt || vmr.lastUsedAt < staleThreshold
     }))

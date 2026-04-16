@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getShortConferenceIds } from '@/lib/settings'
 
 export async function GET(
   _request: Request,
@@ -9,10 +10,13 @@ export async function GET(
     const { name: rawName } = await params
     const name = decodeURIComponent(rawName)
 
+    const excludedIds = await getShortConferenceIds()
+
     const vmr = await prisma.vMR.findUnique({
       where: { name },
       include: {
         conferences: {
+          where: excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {},
           orderBy: { startTime: 'desc' },
           include: {
             _count: { select: { participants: true } },
