@@ -16,8 +16,8 @@ export default function StaticVMRsPage() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [sortBy, setSortBy] = useState<SortKey>('name')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [sortBy, setSortBy] = useState<SortKey>('lastUsedAt')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
   const fetchVmrs = useCallback(async () => {
     if (!baseUrl || !username || !password) return
