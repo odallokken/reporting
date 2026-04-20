@@ -13,11 +13,15 @@ export async function GET() {
 
     const [activeVmrs, activeConferences, activeParticipants, recentActivity, recentConferences] = await Promise.all([
       prisma.vMR.count({ where: { lastUsedAt: { gte: thirtyDaysAgo } } }),
-      prisma.conference.count({
+      prisma.vMR.count({
         where: {
-          endTime: null,
-          participants: { some: { leaveTime: null } },
-          ...excludeFilter
+          conferences: {
+            some: {
+              endTime: null,
+              participants: { some: { leaveTime: null } },
+              ...excludeFilter
+            }
+          }
         }
       }),
       prisma.participant.count({ where: { leaveTime: null, conference: { endTime: null, ...excludeFilter } } }),
