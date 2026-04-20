@@ -402,6 +402,63 @@ All variables are configured in the `.env` file at the root of the project.
 | `GET` | `/api/realtime` | Recent participant events |
 | `POST` | `/api/cdrs/import` | Import CDRs from Pexip Management API |
 
+### Pexip Infinity API Communications
+
+This section documents every API interaction between the reporting portal and the Pexip Infinity environment.
+
+#### Authentication
+
+All outbound requests to the Pexip Management Node use **HTTP Basic Authentication** with the following headers:
+
+- `Authorization: Basic <base64(username:password)>`
+- `Accept: application/json`
+- `Content-Type: application/json`
+- `Cache-Control: no-cache, no-store, must-revalidate`
+
+HTTP 3xx redirects are followed automatically with the same credentials.
+
+#### Outbound Requests (Portal → Pexip)
+
+All outbound calls are **GET** requests. The portal does not perform any POST, PUT, DELETE, or PATCH operations against the Pexip Management Node — it is a read-only consumer.
+
+| # | Method | Pexip API Endpoint | Triggered By | Purpose |
+|---|--------|--------------------|--------------|---------|
+| 1 | `GET` | `/api/admin/configuration/v1/conference/` | Static VMRs page | Fetches all static VMR configurations (name, description, aliases, pin, guest_pin, allow_guests, tag, service_type). Supports `?name__icontains=` for search. Follows pagination via `meta.next`. |
+| 2 | `GET` | `/api/admin/configuration/v1/conference/?limit=0` | Static VMRs page (count mode) | Fetches only `meta.total_count` to get the total number of static VMRs without returning objects. |
+| 3 | `GET` | `/api/admin/configuration/v1/conference/` | Dynamic VMRs page | Fetches all static VMR names to build an exclusion list, so dynamic VMRs can be identified by filtering out known static ones. Follows pagination. |
+| 4 | `GET` | `/api/admin/configuration/v1/scheduled_conference/` | Scheduled VMRs page | Fetches all scheduled conference VMRs (id, name, description, creation_time, duration, start_time, end_time, is_active, service_type, tag). Follows pagination. |
+| 5 | `GET` | `/api/admin/configuration/v1/scheduled_alias/` | Scheduled VMRs page | Fetches all scheduled aliases (id, alias, scheduled_conference, description). Called in parallel with #4. Follows pagination. |
+| 6 | `GET` | `/api/admin/history/v1/conference/` | CDR Import (Settings page) | Fetches all historical conference records (id, name, start_time, end_time, call_id, participant URIs). Follows pagination via `meta.next`. |
+| 7 | `GET` | `/api/admin/history/v1/participant/?conference=<id>` | CDR Import (Settings page) | For each conference from #6, fetches its participant records (display_name, call_uuid, connect_time, disconnect_time). Follows pagination. |
+
+**Pagination:** All Pexip Management API responses are paginated. The portal follows the `meta.next` field until it is `null`, enforcing the original `baseOrigin` on each subsequent URL to prevent issues with reverse proxies.
+
+#### Inbound Webhook (Pexip → Portal)
+
+Pexip Infinity pushes real-time events to the portal via the **Event Sink** mechanism. This is configured in the Pexip Management Node under **System → Event sinks** (see [Connecting to Pexip Infinity](#connecting-to-pexip-infinity)).
+
+| Method | Portal Endpoint | Pexip Event Types |
+|--------|-----------------|-------------------|
+| `POST` | `/api/events` | `conference_started` — A new conference has begun. |
+| `POST` | `/api/events` | `conference_ended` — A conference has ended. |
+| `POST` | `/api/events` | `participant_connected` — A participant joined a conference. Includes protocol, role, aliases, bandwidth, vendor, encryption, and media node details. |
+| `POST` | `/api/events` | `participant_updated` — A participant's state changed (bandwidth, mute, role, encryption, media node). |
+| `POST` | `/api/events` | `participant_disconnected` — A participant left a conference. Includes disconnect reason, duration, and end-of-call media stream statistics. |
+| `POST` | `/api/events` | `participant_media_stream_window` — Periodic quality report for an active participant. Includes call quality ratings (audio, video, presentation) and packet loss history. |
+| `POST` | `/api/events` | `participant_media_streams_destroyed` — Final media stream statistics when streams are torn down. |
+| `POST` | `/api/events` | `eventsink_bulk` — A batch envelope containing multiple events of any of the above types. |
+
+#### Source Files
+
+| File | Role |
+|------|------|
+| `src/lib/pexip.ts` | Core HTTP client — `fetchWithBasicAuth()`, `fetchAllPexipPages()`, `fetchStaticVmrNames()` |
+| `src/app/api/vmrs/static/route.ts` | Outbound calls #1 and #2 (static VMRs) |
+| `src/app/api/vmrs/route.ts` | Outbound call #3 (static VMR name exclusion for dynamic VMRs) |
+| `src/app/api/vmrs/scheduled/route.ts` | Outbound calls #4 and #5 (scheduled VMRs and aliases) |
+| `src/app/api/cdrs/import/route.ts` | Outbound calls #6 and #7 (CDR conference and participant import) |
+| `src/app/api/events/route.ts` | Inbound event sink webhook receiver |
+
 ### Tech Stack
 
 - **[Next.js 15](https://nextjs.org/)** — App Router, TypeScript, server & client components
