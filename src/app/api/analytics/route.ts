@@ -5,11 +5,12 @@ import { prisma } from '@/lib/prisma'
 import { addDays, format, startOfDay, subDays } from 'date-fns'
 import { getShortConferenceIds } from '@/lib/settings'
 
-const WINDOW_DAYS = 30
+const DEFAULT_WINDOW_DAYS = 30
+const MAX_WINDOW_DAYS = 365
 const IDENTIFIER_PROTOCOL_PREFIX = /^(sip|sips|h323|teams|msteams|ms-teams|mailto):/i
 
 type BreakdownItem = { name: string; value: number }
-type PeakConcurrencyPoint = { date: string; peakConferences: number; peakParticipants: number }
+type PeakConcurrencyPoint = { date: string; peakParticipants: number }
 type TimeInterval = { start: number; end: number }
 
 type AnalyticsParticipant = {
@@ -31,15 +32,16 @@ type AnalyticsParticipant = {
   conferenceEndTime: Date | null
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const windowDays = getWindowDays(new URL(request.url).searchParams.get('days'))
     const now = new Date()
-    const windowStart = startOfDay(subDays(now, WINDOW_DAYS - 1))
+    const windowStart = startOfDay(subDays(now, windowDays - 1))
     const windowEnd = addDays(startOfDay(now), 1)
     const excludedIds = await getShortConferenceIds()
     const excludeConferenceFilter = excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}
 
-    const [participantsInWindow, participantIntervals, conferencesInWindow, conferenceIntervals] = await Promise.all([
+    const [participantsInWindow, participantIntervals, conferencesInWindow] = await Promise.all([
       prisma.participant.findMany({
         where: {
           joinTime: { gte: windowStart, lt: windowEnd },
@@ -96,14 +98,6 @@ export async function GET() {
           _count: { select: { participants: true } },
         },
       }),
-      prisma.conference.findMany({
-        where: {
-          startTime: { lt: windowEnd },
-          OR: [{ endTime: null }, { endTime: { gte: windowStart } }],
-          ...excludeConferenceFilter,
-        },
-        select: { startTime: true, endTime: true },
-      }),
     ])
 
     const normalizedParticipantsInWindow = participantsInWindow.map(({ conference, ...participant }) => ({
@@ -125,17 +119,15 @@ export async function GET() {
 
     const encryptionBreakdown = buildEncryptionBreakdown(normalizedParticipantsInWindow)
     const topParticipants = buildTopParticipants(normalizedParticipantsInWindow, now)
-    const peakConcurrency = calculatePeakConcurrency(conferenceIntervals, normalizedParticipantIntervals, windowStart, windowEnd)
+    const peakConcurrency = calculatePeakConcurrency(normalizedParticipantIntervals, windowStart, windowEnd, windowDays)
     const durationDistribution = buildDurationDistribution(conferencesInWindow)
-    const conferenceActivity = buildConferenceActivity(conferencesInWindow, windowStart)
+    const conferenceActivity = buildConferenceActivity(conferencesInWindow, windowStart, windowDays)
     const topVmrs = buildTopVmrs(conferencesInWindow)
 
     const peakParticipants = peakConcurrency.reduce((max, point) => Math.max(max, point.peakParticipants), 0)
-    const peakConferences = peakConcurrency.reduce((max, point) => Math.max(max, point.peakConferences), 0)
     const busiestDay = peakConcurrency.reduce<PeakConcurrencyPoint | null>((best, point) => {
       if (!best) return point
       if (point.peakParticipants > best.peakParticipants) return point
-      if (point.peakParticipants === best.peakParticipants && point.peakConferences > best.peakConferences) return point
       return best
     }, null)
 
@@ -151,12 +143,12 @@ export async function GET() {
       : null
 
     return NextResponse.json({
+      windowDays,
       summary: {
         totalConferences: conferencesInWindow.length,
         totalParticipantSessions: participantsInWindow.length,
         uniqueParticipants: topParticipants.length,
         peakParticipants,
-        peakConferences,
         averageParticipantsPerConference,
         averageConferenceDuration,
         largestConference,
@@ -169,6 +161,7 @@ export async function GET() {
         topProtocol: protocolBreakdown[0]?.name ?? null,
         topVendor: vendorBreakdown[0]?.name ?? null,
         averageParticipantsPerConference,
+        windowDays,
       }),
       conferenceActivity,
       topVmrs,
@@ -340,11 +333,11 @@ function participantDurationSeconds(
   participant: Pick<AnalyticsParticipant, 'duration' | 'joinTime' | 'leaveTime' | 'conferenceEndTime'>,
   referenceTime: Date,
 ): number {
-  if (typeof participant.duration === 'number' && participant.duration > 0) return participant.duration
-
   const effectiveEnd = effectiveParticipantEndTime(participant, referenceTime)
   const derived = (effectiveEnd.getTime() - participant.joinTime.getTime()) / 1000
-  return derived > 0 ? derived : 0
+  const derivedDuration = derived > 0 ? derived : 0
+  const storedDuration = typeof participant.duration === 'number' && participant.duration > 0 ? participant.duration : 0
+  return Math.max(storedDuration, derivedDuration)
 }
 
 function effectiveParticipantEndTime(
@@ -384,10 +377,10 @@ function buildDurationDistribution(conferences: { startTime: Date; endTime: Date
   return Object.entries(buckets).map(([name, value]) => ({ name, value }))
 }
 
-function buildConferenceActivity(conferences: { startTime: Date }[], windowStart: Date) {
+function buildConferenceActivity(conferences: { startTime: Date }[], windowStart: Date, windowDays: number) {
   const dayMap: Record<string, number> = {}
 
-  for (let index = 0; index < WINDOW_DAYS; index++) {
+  for (let index = 0; index < windowDays; index++) {
     const day = addDays(windowStart, index)
     dayMap[format(day, 'yyyy-MM-dd')] = 0
   }
@@ -432,6 +425,7 @@ function buildInsights({
   topProtocol,
   topVendor,
   averageParticipantsPerConference,
+  windowDays,
 }: {
   busiestDay: PeakConcurrencyPoint | null
   peakParticipants: number
@@ -439,6 +433,7 @@ function buildInsights({
   topProtocol: string | null
   topVendor: string | null
   averageParticipantsPerConference: number
+  windowDays: number
 }) {
   const insights: { title: string; value: string; description: string }[] = []
 
@@ -457,7 +452,7 @@ function buildInsights({
     insights.push({
       title: 'Endpoint focus',
       value,
-      description: `The last 30 days are dominated by ${topProtocol ?? 'mixed protocols'}${topVendor ? ` and ${topVendor} endpoints` : ''}. Prioritize testing and troubleshooting around that client mix.`,
+      description: `The last ${windowDays} days are dominated by ${topProtocol ?? 'mixed protocols'}${topVendor ? ` and ${topVendor} endpoints` : ''}. Prioritize testing and troubleshooting around that client mix.`,
     })
   }
 
@@ -489,20 +484,16 @@ function buildInsights({
 }
 
 function calculatePeakConcurrency(
-  conferences: { startTime: Date; endTime: Date | null }[],
   participants: { joinTime: Date; leaveTime: Date | null; conferenceEndTime: Date | null }[],
   windowStart: Date,
   windowEnd: Date,
+  windowDays: number,
 ): PeakConcurrencyPoint[] {
-  const dayMap: Record<string, { conferences: TimeInterval[]; participants: TimeInterval[] }> = {}
+  const dayMap: Record<string, { participants: TimeInterval[] }> = {}
 
-  for (let index = 0; index < WINDOW_DAYS; index++) {
+  for (let index = 0; index < windowDays; index++) {
     const day = addDays(windowStart, index)
-    dayMap[format(day, 'yyyy-MM-dd')] = { conferences: [], participants: [] }
-  }
-
-  for (const conference of conferences) {
-    addIntervalToDayMap(dayMap, conference.startTime, conference.endTime ?? windowEnd, windowStart, windowEnd, 'conferences')
+    dayMap[format(day, 'yyyy-MM-dd')] = { participants: [] }
   }
 
   for (const participant of participants) {
@@ -518,13 +509,12 @@ function calculatePeakConcurrency(
 
   return Object.entries(dayMap).map(([date, value]) => ({
     date,
-    peakConferences: peakFromIntervals(value.conferences),
     peakParticipants: peakFromIntervals(value.participants),
   }))
 }
 
 function addIntervalToDayMap(
-  dayMap: Record<string, { conferences: TimeInterval[]; participants: TimeInterval[] }>,
+  dayMap: Record<string, { participants: TimeInterval[] }>,
   rawStart: Date,
   rawEnd: Date,
   windowStart: Date,
@@ -575,4 +565,10 @@ function peakFromIntervals(intervals: TimeInterval[]): number {
 
 function roundToSingleDecimal(value: number): number {
   return Math.round(value * 10) / 10
+}
+
+function getWindowDays(value: string | null): number {
+  const parsed = Number.parseInt(value ?? '', 10)
+  if (Number.isNaN(parsed)) return DEFAULT_WINDOW_DAYS
+  return Math.min(MAX_WINDOW_DAYS, Math.max(1, parsed))
 }

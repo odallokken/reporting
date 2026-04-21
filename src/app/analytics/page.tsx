@@ -14,7 +14,6 @@ interface BreakdownItem {
 
 interface PeakConcurrencyPoint {
   date: string
-  peakConferences: number
   peakParticipants: number
 }
 
@@ -39,12 +38,12 @@ interface AnalyticsData {
     totalParticipantSessions: number
     uniqueParticipants: number
     peakParticipants: number
-    peakConferences: number
     averageParticipantsPerConference: number
     averageConferenceDuration: number
     largestConference: number
     encryptedShare: number | null
   }
+  windowDays: number
   insights: Insight[]
   conferenceActivity: { date: string; count: number }[]
   topVmrs: BreakdownItem[]
@@ -72,6 +71,7 @@ function formatMetricValue(value: number): string {
 
 const SUMMARY_SKELETON_CLASS = 'glass-card rounded-2xl shadow-glass p-6 h-32 animate-pulse'
 const CHART_SKELETON_CLASS = 'glass-card rounded-2xl shadow-glass p-6 h-[380px] animate-pulse'
+const WINDOW_OPTIONS = [30, 90, 180, 365]
 
 function MetricCard({
   title,
@@ -114,9 +114,13 @@ export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [windowDays, setWindowDays] = useState(30)
 
   useEffect(() => {
-    fetch('/api/analytics')
+    setLoading(true)
+    setError(null)
+
+    fetch(`/api/analytics?days=${windowDays}`)
       .then((response) => {
         if (!response.ok) throw new Error('Failed to fetch analytics data')
         return response.json()
@@ -124,7 +128,7 @@ export default function AnalyticsPage() {
       .then(setData)
       .catch((fetchError: Error) => setError(fetchError.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [windowDays])
 
   if (loading) {
     return (
@@ -159,18 +163,37 @@ export default function AnalyticsPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Analytics</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Reworked participant and conference analytics using the stored Pexip history data from the last 30 days.</p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Analytics</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">Participant and conference analytics using the stored Pexip history data from the last {data.windowDays} days.</p>
+          </div>
+          <div>
+            <label htmlFor="analytics-window-days" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time span</label>
+            <select
+              id="analytics-window-days"
+              value={windowDays}
+              onChange={(event) => setWindowDays(parseInt(event.target.value, 10))}
+              className="px-3 py-2 border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-card/60 rounded-xl text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              {WINDOW_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  Last {option} days
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 mb-8">
-        <MetricCard
-          title="Conferences"
-          value={formatMetricValue(data.summary.totalConferences)}
-          subtitle="Started in the last 30 days"
-          icon={CalendarRange}
-          tone="teal"
-        />
+          <MetricCard
+            title="Conferences"
+            value={formatMetricValue(data.summary.totalConferences)}
+            subtitle={`Started in the last ${data.windowDays} days`}
+            icon={CalendarRange}
+            tone="teal"
+          />
         <MetricCard
           title="Participant Sessions"
           value={formatMetricValue(data.summary.totalParticipantSessions)}
@@ -185,13 +208,13 @@ export default function AnalyticsPage() {
           icon={UserSquare2}
           tone="purple"
         />
-        <MetricCard
-          title="Peak Concurrent Participants"
-          value={formatMetricValue(data.summary.peakParticipants)}
-          subtitle={`Peak of ${formatMetricValue(data.summary.peakConferences)} conferences at once`}
-          icon={Users}
-          tone="emerald"
-        />
+          <MetricCard
+            title="Peak Concurrent Participants"
+            value={formatMetricValue(data.summary.peakParticipants)}
+            subtitle="Highest simultaneous participant count"
+            icon={Users}
+            tone="emerald"
+          />
         <MetricCard
           title="Encryption Coverage"
           value={data.summary.encryptedShare === null ? '—' : `${data.summary.encryptedShare}%`}
@@ -226,8 +249,8 @@ export default function AnalyticsPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
         <div className="glass-card rounded-2xl shadow-glass p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Peak Concurrent Usage</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Per-day peak based on overlapping conference and participant intervals, not only their start times.</p>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Peak Concurrent Participants</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Per-day peak based on overlapping participant intervals, not only join times.</p>
           <PeakConcurrencyChart data={data.peakConcurrency} />
         </div>
         <div className="glass-card rounded-2xl shadow-glass p-6">
@@ -240,7 +263,7 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
         <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Top VMRs</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Rooms with the most conferences started in the last 30 days.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Rooms with the most conferences started in the last {data.windowDays} days.</p>
           <GenericBarChart data={data.topVmrs} color="#3b8eff" label="Conferences" />
         </div>
 
