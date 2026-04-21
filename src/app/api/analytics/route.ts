@@ -6,6 +6,7 @@ import { addDays, format, startOfDay, subDays } from 'date-fns'
 import { getShortConferenceIds } from '@/lib/settings'
 
 const WINDOW_DAYS = 30
+const IDENTIFIER_PROTOCOL_PREFIX = /^(sip|sips|h323|teams|msteams|ms-teams|mailto):/i
 
 type BreakdownItem = { name: string; value: number }
 type PeakConcurrencyPoint = { date: string; peakConferences: number; peakParticipants: number }
@@ -100,7 +101,7 @@ export async function GET() {
     ).slice(0, 15)
 
     const encryptionBreakdown = buildEncryptionBreakdown(participantsInWindow)
-    const topParticipants = buildTopParticipants(participantsInWindow)
+    const topParticipants = buildTopParticipants(participantsInWindow, now)
     const peakConcurrency = calculatePeakConcurrency(conferenceIntervals, participantIntervals, windowStart, windowEnd)
     const durationDistribution = buildDurationDistribution(conferencesInWindow)
     const conferenceActivity = buildConferenceActivity(conferencesInWindow, windowStart)
@@ -208,7 +209,7 @@ function buildEncryptionBreakdown(participants: Pick<AnalyticsParticipant, 'encr
   ]
 }
 
-function buildTopParticipants(participants: AnalyticsParticipant[]) {
+function buildTopParticipants(participants: AnalyticsParticipant[], referenceTime: Date) {
   const participantMap: Record<string, {
     name: string
     secondaryLabel: string | null
@@ -221,7 +222,7 @@ function buildTopParticipants(participants: AnalyticsParticipant[]) {
     const preferredLabel = getParticipantPrimaryLabel(participant)
     const secondaryLabel = getParticipantSecondaryLabel(participant, preferredLabel)
     const key = getParticipantGroupingKey(participant, preferredLabel)
-    const duration = participantDurationSeconds(participant)
+    const duration = participantDurationSeconds(participant, referenceTime)
 
     if (!participantMap[key]) {
       participantMap[key] = {
@@ -238,8 +239,9 @@ function buildTopParticipants(participants: AnalyticsParticipant[]) {
     entry.conferenceIds.add(participant.conferenceId)
     entry.totalDuration += duration
 
-    if (entry.name.includes('@') && !preferredLabel.includes('@')) {
-      entry.name = preferredLabel
+    const displayName = cleanDisplayName(participant.name)
+    if (displayName) {
+      entry.name = displayName
     }
     if (!entry.secondaryLabel && secondaryLabel) {
       entry.secondaryLabel = secondaryLabel
@@ -305,17 +307,17 @@ function cleanIdentifier(value: string | null | undefined): string | null {
 
   const bracketMatch = trimmed.match(/<([^>]+)>/)
   const innerValue = bracketMatch?.[1] ?? trimmed
-  const withoutProtocol = innerValue.replace(/^(sip|sips|h323|teams|msteams|ms-teams|mailto):/i, '')
+  const withoutProtocol = innerValue.replace(IDENTIFIER_PROTOCOL_PREFIX, '')
   const normalized = withoutProtocol.split(';')[0].trim().replace(/^['"]|['"]$/g, '')
 
   return normalized || null
 }
 
-function participantDurationSeconds(participant: Pick<AnalyticsParticipant, 'duration' | 'joinTime' | 'leaveTime'>): number {
+function participantDurationSeconds(participant: Pick<AnalyticsParticipant, 'duration' | 'joinTime' | 'leaveTime'>, referenceTime: Date): number {
   if (typeof participant.duration === 'number' && participant.duration > 0) return participant.duration
-  if (!participant.leaveTime) return 0
 
-  const derived = (participant.leaveTime.getTime() - participant.joinTime.getTime()) / 1000
+  const effectiveEnd = participant.leaveTime ?? referenceTime
+  const derived = (effectiveEnd.getTime() - participant.joinTime.getTime()) / 1000
   return derived > 0 ? derived : 0
 }
 
