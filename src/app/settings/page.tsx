@@ -23,6 +23,17 @@ export default function SettingsPage() {
   const [password, setPassword] = useState('')
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ imported?: number; skipped?: number; error?: string } | null>(null)
+  const [cleaningDuplicates, setCleaningDuplicates] = useState(false)
+  const [cleanupResult, setCleanupResult] = useState<{
+    duplicateConferenceGroups?: number
+    deletedConferences?: number
+    mergedParticipants?: number
+    movedParticipants?: number
+    deletedParticipants?: number
+    reparentedMediaStreams?: number
+    reparentedQualityWindows?: number
+    error?: string
+  } | null>(null)
   const [copied, setCopied] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saved-partial' | 'error' | null>(null)
   const [excludeShortConferences, setExcludeShortConferences] = useState(false)
@@ -195,6 +206,7 @@ export default function SettingsPage() {
     setImporting(true)
     setSaveStatus(null)
     setImportResult(null)
+    setCleanupResult(null)
     try {
       const res = await fetch('/api/cdrs/import', {
         method: 'POST',
@@ -212,6 +224,24 @@ export default function SettingsPage() {
       setImportResult({ error: 'Network error' })
     } finally {
       setImporting(false)
+    }
+  }
+
+  const handleCleanupDuplicates = async () => {
+    if (!confirm('Clean up existing duplicate historical conferences and participants? This cannot be undone.')) return
+
+    setCleaningDuplicates(true)
+    setImportResult(null)
+    setCleanupResult(null)
+
+    try {
+      const res = await fetch('/api/cdrs/cleanup', { method: 'POST' })
+      const data = await res.json()
+      setCleanupResult(data)
+    } catch {
+      setCleanupResult({ error: 'Network error' })
+    } finally {
+      setCleaningDuplicates(false)
     }
   }
 
@@ -331,6 +361,25 @@ export default function SettingsPage() {
                 {importing ? 'Importing...' : 'Import CDRs'}
               </button>
             </div>
+            {isAdmin && (
+              <div className="pt-2 border-t border-gray-200/60 dark:border-gray-700/30">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Existing duplicate data</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Removes already-imported duplicate historical conferences and participant sessions.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleCleanupDuplicates}
+                    disabled={cleaningDuplicates}
+                    className="py-2.5 px-4 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300 rounded-xl font-medium text-sm hover:bg-red-50 dark:hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {cleaningDuplicates ? 'Cleaning…' : 'Clean duplicates'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {saveStatus && (
@@ -351,6 +400,18 @@ export default function SettingsPage() {
                 <p>Error: {importResult.error}</p>
               ) : (
                 <p>Import complete: {importResult.imported} imported, {importResult.skipped} skipped</p>
+              )}
+            </div>
+          )}
+
+          {cleanupResult && (
+            <div className={`mt-4 p-4 rounded-lg text-sm ${cleanupResult.error ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
+              {cleanupResult.error ? (
+                <p>Error: {cleanupResult.error}</p>
+              ) : (
+                <p>
+                  Cleanup complete: {cleanupResult.duplicateConferenceGroups ?? 0} duplicate conference groups, {cleanupResult.deletedConferences ?? 0} conferences deleted, {cleanupResult.mergedParticipants ?? 0} participants merged, {cleanupResult.movedParticipants ?? 0} participants moved.
+                </p>
               )}
             </div>
           )}

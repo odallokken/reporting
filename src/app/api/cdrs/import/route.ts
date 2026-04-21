@@ -210,6 +210,8 @@ export async function POST(request: NextRequest) {
 
         const vmrName = conf.name ?? 'Unknown'
         const startTime = conf.start_time ? new Date(conf.start_time) : null
+        const endTime = conf.end_time ? new Date(conf.end_time) : null
+        const historyId = conf.id ? String(conf.id) : null
         const existingVmr = await prisma.vMR.findUnique({ where: { name: vmrName } })
         let vmr
         if (existingVmr) {
@@ -227,13 +229,12 @@ export async function POST(request: NextRequest) {
           })
         }
 
-        const conference = await prisma.conference.create({
-          data: {
-            vmrId: vmr.id,
-            startTime: conf.start_time ? new Date(conf.start_time) : new Date(),
-            endTime: conf.end_time ? new Date(conf.end_time) : null,
-            callId: conf.call_id ?? null
-          }
+        const conference = await upsertHistoricalConference({
+          vmrId: vmr.id,
+          historyId,
+          callId: conf.call_id ?? null,
+          startTime: startTime ?? new Date(),
+          endTime,
         })
 
         if (conf.id) {
@@ -256,15 +257,15 @@ export async function POST(request: NextRequest) {
 
               if (partData.objects) {
                 for (const p of partData.objects) {
-                  await prisma.participant.create({
-                    data: {
-                      conferenceId: conference.id,
+                  await upsertHistoricalParticipant(
+                    conference.id,
+                    {
                       name: p.display_name ?? null,
                       callUuid: p.call_uuid ?? null,
-                      joinTime: p.connect_time ? new Date(p.connect_time) : new Date(),
-                      leaveTime: p.disconnect_time ? new Date(p.disconnect_time) : null
+                      joinTime: p.connect_time ? new Date(p.connect_time) : conference.startTime,
+                      leaveTime: p.disconnect_time ? new Date(p.disconnect_time) : conference.endTime,
                     }
-                  })
+                  )
                 }
               }
 
@@ -301,4 +302,131 @@ export async function POST(request: NextRequest) {
     await log('error', 'CDR import failed with unexpected error', { source: LOG_SOURCE, details: errMessage })
     return NextResponse.json({ error: 'Import failed' }, { status: 500 })
   }
+}
+
+async function upsertHistoricalConference({
+  vmrId,
+  historyId,
+  callId,
+  startTime,
+  endTime,
+}: {
+  vmrId: number
+  historyId: string | null
+  callId: string | null
+  startTime: Date
+  endTime: Date | null
+}) {
+  const existingConferenceByHistoryId = historyId
+    ? await prisma.conference.findUnique({ where: { historyId } })
+    : null
+  const existingConferenceByCallId = !existingConferenceByHistoryId && callId
+    ? await prisma.conference.findUnique({ where: { callId } })
+    : null
+  const existingConferenceByWindow = !existingConferenceByHistoryId && !existingConferenceByCallId
+    ? await prisma.conference.findFirst({
+        where: {
+          vmrId,
+          startTime,
+          endTime,
+          callId: null,
+        },
+      })
+    : null
+  const existingConference = existingConferenceByHistoryId ?? existingConferenceByCallId ?? existingConferenceByWindow
+
+  if (!existingConference) {
+    return prisma.conference.create({
+      data: {
+        vmrId,
+        historyId,
+        startTime,
+        endTime,
+        callId,
+      },
+    })
+  }
+
+  return prisma.conference.update({
+    where: { id: existingConference.id },
+    data: {
+      historyId: historyId ?? existingConference.historyId,
+      callId: callId ?? existingConference.callId,
+      startTime,
+      endTime: endTime ?? existingConference.endTime,
+    },
+  })
+}
+
+async function upsertHistoricalParticipant(
+  conferenceId: number,
+  participant: {
+    name: string | null
+    callUuid: string | null
+    joinTime: Date
+    leaveTime: Date | null
+  },
+) {
+  const duration = participant.leaveTime
+    ? Math.max(0, (participant.leaveTime.getTime() - participant.joinTime.getTime()) / 1000)
+    : null
+
+  const existingParticipant = participant.callUuid
+    ? await prisma.participant.findUnique({ where: { callUuid: participant.callUuid } })
+    : await prisma.participant.findFirst({
+        where: {
+          conferenceId,
+          callUuid: null,
+          name: participant.name,
+          joinTime: participant.joinTime,
+          leaveTime: participant.leaveTime,
+        },
+      })
+
+  if (!existingParticipant) {
+    return prisma.participant.create({
+      data: {
+        conferenceId,
+        name: participant.name,
+        callUuid: participant.callUuid,
+        joinTime: participant.joinTime,
+        leaveTime: participant.leaveTime,
+        duration,
+      },
+    })
+  }
+
+  const updateData: {
+    conferenceId?: number
+    name?: string | null
+    joinTime?: Date
+    leaveTime?: Date | null
+    duration?: number | null
+  } = {}
+
+  if (existingParticipant.conferenceId !== conferenceId) {
+    await log('warn', 'Reassigning imported participant to a different conference', {
+      source: LOG_SOURCE,
+      details: `Participant ${existingParticipant.id} (${participant.callUuid ?? participant.name ?? 'unknown'}) moved from conference ${existingParticipant.conferenceId} to ${conferenceId}`,
+    })
+    updateData.conferenceId = conferenceId
+  }
+  if (participant.name !== null && participant.name !== existingParticipant.name) updateData.name = participant.name
+  if (existingParticipant.joinTime.getTime() !== participant.joinTime.getTime()) updateData.joinTime = participant.joinTime
+  if (
+    (existingParticipant.leaveTime?.getTime() ?? null) !== (participant.leaveTime?.getTime() ?? null)
+    && participant.leaveTime !== null
+  ) {
+    updateData.leaveTime = participant.leaveTime
+  }
+  if (duration !== null && duration !== existingParticipant.duration) updateData.duration = duration
+
+  if (Object.keys(updateData).length === 0) {
+    return existingParticipant
+  }
+
+  return prisma.participant.update({
+    where: { id: existingParticipant.id },
+    data: updateData,
+  })
 }

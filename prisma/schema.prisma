@@ -20,6 +20,7 @@ model Conference {
   id           Int           @id @default(autoincrement())
   vmrId        Int
   vmr          VMR           @relation(fields: [vmrId], references: [id])
+  historyId    String?       @unique
   startTime    DateTime
   endTime      DateTime?
   callId       String?       @unique
