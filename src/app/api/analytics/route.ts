@@ -28,6 +28,7 @@ type AnalyticsParticipant = {
   callDirection: string | null
   encryption: string | null
   disconnectReason: string | null
+  conferenceEndTime: Date | null
 }
 
 export async function GET() {
@@ -60,6 +61,11 @@ export async function GET() {
           callDirection: true,
           encryption: true,
           disconnectReason: true,
+          conference: {
+            select: {
+              endTime: true,
+            },
+          },
         },
       }),
       prisma.participant.findMany({
@@ -68,7 +74,15 @@ export async function GET() {
           OR: [{ leaveTime: null }, { leaveTime: { gte: windowStart } }],
           conference: excludeConferenceFilter,
         },
-        select: { joinTime: true, leaveTime: true },
+        select: {
+          joinTime: true,
+          leaveTime: true,
+          conference: {
+            select: {
+              endTime: true,
+            },
+          },
+        },
       }),
       prisma.conference.findMany({
         where: {
@@ -92,17 +106,26 @@ export async function GET() {
       }),
     ])
 
-    const protocolBreakdown = buildSortedBreakdown(participantsInWindow, (participant) => participant.protocol ?? 'Unknown')
-    const vendorBreakdown = buildSortedBreakdown(participantsInWindow, (participant) => normalizeVendor(participant.vendor))
-    const callDirectionBreakdown = buildSortedBreakdown(participantsInWindow, (participant) => participant.callDirection ?? 'Unknown')
+    const normalizedParticipantsInWindow = participantsInWindow.map(({ conference, ...participant }) => ({
+      ...participant,
+      conferenceEndTime: conference.endTime,
+    }))
+    const normalizedParticipantIntervals = participantIntervals.map(({ conference, ...participant }) => ({
+      ...participant,
+      conferenceEndTime: conference.endTime,
+    }))
+
+    const protocolBreakdown = buildSortedBreakdown(normalizedParticipantsInWindow, (participant) => participant.protocol ?? 'Unknown')
+    const vendorBreakdown = buildSortedBreakdown(normalizedParticipantsInWindow, (participant) => normalizeVendor(participant.vendor))
+    const callDirectionBreakdown = buildSortedBreakdown(normalizedParticipantsInWindow, (participant) => participant.callDirection ?? 'Unknown')
     const disconnectReasons = buildSortedBreakdown(
-      participantsInWindow.filter((participant) => participant.disconnectReason),
+      normalizedParticipantsInWindow.filter((participant) => participant.disconnectReason),
       (participant) => participant.disconnectReason ?? 'Unknown'
     ).slice(0, 15)
 
-    const encryptionBreakdown = buildEncryptionBreakdown(participantsInWindow)
-    const topParticipants = buildTopParticipants(participantsInWindow, now)
-    const peakConcurrency = calculatePeakConcurrency(conferenceIntervals, participantIntervals, windowStart, windowEnd)
+    const encryptionBreakdown = buildEncryptionBreakdown(normalizedParticipantsInWindow)
+    const topParticipants = buildTopParticipants(normalizedParticipantsInWindow, now)
+    const peakConcurrency = calculatePeakConcurrency(conferenceIntervals, normalizedParticipantIntervals, windowStart, windowEnd)
     const durationDistribution = buildDurationDistribution(conferencesInWindow)
     const conferenceActivity = buildConferenceActivity(conferencesInWindow, windowStart)
     const topVmrs = buildTopVmrs(conferencesInWindow)
@@ -313,12 +336,22 @@ function cleanIdentifier(value: string | null | undefined): string | null {
   return normalized || null
 }
 
-function participantDurationSeconds(participant: Pick<AnalyticsParticipant, 'duration' | 'joinTime' | 'leaveTime'>, referenceTime: Date): number {
+function participantDurationSeconds(
+  participant: Pick<AnalyticsParticipant, 'duration' | 'joinTime' | 'leaveTime' | 'conferenceEndTime'>,
+  referenceTime: Date,
+): number {
   if (typeof participant.duration === 'number' && participant.duration > 0) return participant.duration
 
-  const effectiveEnd = participant.leaveTime ?? referenceTime
+  const effectiveEnd = effectiveParticipantEndTime(participant, referenceTime)
   const derived = (effectiveEnd.getTime() - participant.joinTime.getTime()) / 1000
   return derived > 0 ? derived : 0
+}
+
+function effectiveParticipantEndTime(
+  participant: Pick<AnalyticsParticipant, 'leaveTime' | 'conferenceEndTime'>,
+  fallbackEndTime: Date,
+): Date {
+  return participant.leaveTime ?? participant.conferenceEndTime ?? fallbackEndTime
 }
 
 function buildDurationDistribution(conferences: { startTime: Date; endTime: Date | null }[]): BreakdownItem[] {
@@ -454,7 +487,7 @@ function buildInsights({
 
 function calculatePeakConcurrency(
   conferences: { startTime: Date; endTime: Date | null }[],
-  participants: { joinTime: Date; leaveTime: Date | null }[],
+  participants: { joinTime: Date; leaveTime: Date | null; conferenceEndTime: Date | null }[],
   windowStart: Date,
   windowEnd: Date,
 ): PeakConcurrencyPoint[] {
@@ -470,7 +503,14 @@ function calculatePeakConcurrency(
   }
 
   for (const participant of participants) {
-    addIntervalToDayMap(dayMap, participant.joinTime, participant.leaveTime ?? windowEnd, windowStart, windowEnd, 'participants')
+    addIntervalToDayMap(
+      dayMap,
+      participant.joinTime,
+      effectiveParticipantEndTime(participant, windowEnd),
+      windowStart,
+      windowEnd,
+      'participants',
+    )
   }
 
   return Object.entries(dayMap).map(([date, value]) => ({
