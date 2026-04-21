@@ -280,8 +280,11 @@ export default function SettingsPage() {
 
         <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Import CDRs from Pexip Management API</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
             Import historical conference data from your Pexip Infinity Management Node.
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">
+            These credentials are also used to fetch live media stream stats (bitrate, jitter, packet loss) on the participant detail page.
           </p>
           <div className="space-y-4">
             <div>

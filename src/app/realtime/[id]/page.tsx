@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ArrowDown, ArrowUp, Clock, Globe, Lock, Monitor, Phone, Shield, User } from 'lucide-react'
 import { formatDateTime, formatDuration } from '@/lib/utils'
+import { useCredentials } from '@/lib/credentials'
 
 interface MediaStreamData {
   id: number
@@ -13,6 +14,8 @@ interface MediaStreamData {
   rxCodec: string | null
   rxFps: number | null
   rxPacketLoss: number | null
+  rxCurrentPacketLoss: number | null
+  rxJitter: number | null
   rxPacketsLost: number | null
   rxPacketsRecv: number | null
   rxResolution: string | null
@@ -20,12 +23,22 @@ interface MediaStreamData {
   txCodec: string | null
   txFps: number | null
   txPacketLoss: number | null
+  txCurrentPacketLoss: number | null
+  txJitter: number | null
   txPacketsLost: number | null
   txPacketsSent: number | null
   txResolution: string | null
   startTime: string | null
   endTime: string | null
   node: string | null
+  updatedAt?: string
+}
+
+interface LiveMediaStreamsResponse {
+  source: 'live' | 'cached'
+  fetchedAt: string
+  warning?: string
+  mediaStreams: MediaStreamData[]
 }
 
 interface QualityWindowData {
@@ -171,6 +184,33 @@ function packetLossPercent(lost: number | null | undefined, total: number | null
   return ((lost / total) * 100).toFixed(2) + '%'
 }
 
+function formatLossPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '-'
+  return `${value.toFixed(1)}%`
+}
+
+function lossColorClass(value: number | null | undefined): string {
+  if (value === null || value === undefined) return 'text-gray-400 dark:text-gray-500'
+  if (value <= 0.05) return 'text-green-600 dark:text-green-400'
+  if (value < 1) return 'text-amber-600 dark:text-amber-400'
+  return 'text-red-600 dark:text-red-400'
+}
+
+function formatNumber(value: number | null | undefined, fractionDigits = 0): string {
+  if (value === null || value === undefined) return '-'
+  return value.toFixed(fractionDigits)
+}
+
+function formatInteger(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '-'
+  return value.toLocaleString()
+}
+
+function formatText(value: string | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '-'
+  return value
+}
+
 function streamTypeIcon(type: string): string {
   switch (type) {
     case 'audio': return '🔊'
@@ -185,6 +225,12 @@ export default function ParticipantDetailPage() {
   const [participant, setParticipant] = useState<ParticipantDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [liveMediaStreams, setLiveMediaStreams] = useState<MediaStreamData[] | null>(null)
+  const [liveSource, setLiveSource] = useState<'live' | 'cached' | null>(null)
+  const [liveWarning, setLiveWarning] = useState<string | null>(null)
+  const [liveFetchedAt, setLiveFetchedAt] = useState<string | null>(null)
+  const [liveAgeTick, setLiveAgeTick] = useState(0)
+  const { baseUrl, username, password, loaded: credsLoaded } = useCredentials()
 
   useEffect(() => {
     fetch(`/api/realtime/${params.id}`)
@@ -197,17 +243,75 @@ export default function ParticipantDetailPage() {
       .finally(() => setLoading(false))
   }, [params.id])
 
-  // Auto-refresh for live participants
+  // Auto-refresh participant detail (excluding mediaStreams which have their
+  // own dedicated poll) for live participants.
   useEffect(() => {
     if (!participant || participant.leaveTime || participant.conference.endTime) return
     const interval = setInterval(() => {
       fetch(`/api/realtime/${params.id}`)
         .then(r => r.ok ? r.json() : null)
-        .then(data => { if (data) setParticipant(data) })
+        .then((data: ParticipantDetail | null) => {
+          if (!data) return
+          setParticipant(prev => {
+            if (!prev) return data
+            // Preserve previous mediaStreams to avoid re-render flashing in the
+            // dedicated table; the live poll updates them separately.
+            return { ...data, mediaStreams: prev.mediaStreams }
+          })
+        })
         .catch(() => {})
     }, 5000)
     return () => clearInterval(interval)
   }, [participant, params.id])
+
+  // Live media stream polling (5s) for active participants.
+  useEffect(() => {
+    if (!participant) return
+    if (!credsLoaded) return
+    if (participant.leaveTime || participant.conference.endTime) {
+      // Past participants: clear any stale live state and stop polling.
+      setLiveMediaStreams(null)
+      setLiveSource(null)
+      setLiveWarning(null)
+      setLiveFetchedAt(null)
+      return
+    }
+
+    let cancelled = false
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/realtime/${params.id}/media-streams`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ baseUrl, username, password }),
+        })
+        if (!res.ok) return
+        const data = (await res.json()) as LiveMediaStreamsResponse
+        if (cancelled) return
+        setLiveMediaStreams(data.mediaStreams)
+        setLiveSource(data.source)
+        setLiveWarning(data.warning ?? null)
+        setLiveFetchedAt(data.fetchedAt)
+      } catch {
+        // ignore network errors; UI will fall back to last-known data
+      }
+    }
+
+    poll()
+    const interval = setInterval(poll, 5000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [participant, params.id, baseUrl, username, password, credsLoaded])
+
+  // Tick once a second so the "updated Xs ago" indicator stays current.
+  useEffect(() => {
+    if (!liveFetchedAt) return
+    const interval = setInterval(() => setLiveAgeTick(t => t + 1), 1000)
+    return () => clearInterval(interval)
+  }, [liveFetchedAt])
 
   if (loading) return <div className="p-8 text-gray-500 dark:text-gray-400">Loading...</div>
   if (error || !participant) return (
@@ -458,47 +562,131 @@ export default function ParticipantDetailPage() {
       </div>
 
       {/* Media Streams - full width */}
-      {participant.mediaStreams.length > 0 && (
-        <div className="mt-6 glass-card rounded-2xl shadow-glass p-6">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Media Streams</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {participant.mediaStreams.map(ms => (
-              <div key={ms.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-lg">{streamTypeIcon(ms.streamType)}</span>
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white capitalize">{ms.streamType}</span>
-                  {ms.streamId && <span className="text-xs text-gray-400">#{ms.streamId}</span>}
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <p className="text-gray-500 font-medium">Receive</p>
-                    {ms.rxCodec && <p className="text-gray-700">Codec: {ms.rxCodec}</p>}
-                    {ms.rxResolution && <p className="text-gray-700">Res: {ms.rxResolution}</p>}
-                    {ms.rxFps != null && <p className="text-gray-700">FPS: {ms.rxFps.toFixed(1)}</p>}
-                    {ms.rxBitrate != null && <p className="text-gray-700">Bitrate: {ms.rxBitrate} kbps</p>}
-                    <p className="text-gray-700">
-                      Loss: {ms.rxPacketLoss != null ? `${ms.rxPacketLoss.toFixed(2)}%` : '-'}
-                      {ms.rxPacketsLost != null && <span className="text-gray-400"> ({ms.rxPacketsLost} pkts)</span>}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500 font-medium">Transmit</p>
-                    {ms.txCodec && <p className="text-gray-700">Codec: {ms.txCodec}</p>}
-                    {ms.txResolution && <p className="text-gray-700">Res: {ms.txResolution}</p>}
-                    {ms.txFps != null && <p className="text-gray-700">FPS: {ms.txFps.toFixed(1)}</p>}
-                    {ms.txBitrate != null && <p className="text-gray-700">Bitrate: {ms.txBitrate} kbps</p>}
-                    <p className="text-gray-700">
-                      Loss: {ms.txPacketLoss != null ? `${ms.txPacketLoss.toFixed(2)}%` : '-'}
-                      {ms.txPacketsLost != null && <span className="text-gray-400"> ({ms.txPacketsLost} pkts)</span>}
-                    </p>
-                  </div>
-                </div>
-                {ms.node && <p className="text-xs text-gray-400 mt-2">Node: {ms.node}</p>}
+      {(() => {
+        const isActiveSession = !participant.leaveTime && !participant.conference.endTime
+        const streams =
+          isActiveSession && liveMediaStreams && liveMediaStreams.length > 0
+            ? liveMediaStreams
+            : participant.mediaStreams
+        if (streams.length === 0 && !isActiveSession) return null
+
+        const ageSeconds = liveFetchedAt
+          ? Math.max(0, Math.floor((Date.now() - new Date(liveFetchedAt).getTime()) / 1000))
+          : null
+        // Reference liveAgeTick so the eslint react-hooks dep check is happy
+        // and the indicator re-renders every second.
+        void liveAgeTick
+
+        return (
+          <div className="mt-6 glass-card rounded-2xl shadow-glass p-6">
+            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+              <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                Conferencing node media streams
+              </h2>
+              {isActiveSession && liveSource && (
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    liveSource === 'live'
+                      ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      liveSource === 'live' ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'
+                    }`}
+                  />
+                  {liveSource === 'live'
+                    ? `Live${ageSeconds !== null ? ` • updated ${ageSeconds}s ago` : ''}`
+                    : 'Snapshot'}
+                </span>
+              )}
+            </div>
+
+            {liveWarning && (
+              <div className="mb-3 p-3 rounded-lg text-xs bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300">
+                {liveWarning}
               </div>
-            ))}
+            )}
+
+            {streams.length === 0 ? (
+              <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">
+                No media streams reported yet.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700/40 text-gray-500 dark:text-gray-400">
+                      <th className="text-left py-2 px-3 font-medium whitespace-nowrap">Type</th>
+                      <th className="text-left py-2 px-3 font-medium whitespace-nowrap">Start time</th>
+                      <th className="text-left py-2 px-3 font-medium whitespace-nowrap">Node</th>
+                      <th className="text-left py-2 px-3 font-medium whitespace-nowrap">Tx codec</th>
+                      <th className="text-right py-2 px-3 font-medium whitespace-nowrap">Tx bitrate (kbps)</th>
+                      <th className="text-left py-2 px-3 font-medium whitespace-nowrap">Tx resolution</th>
+                      <th className="text-right py-2 px-3 font-medium whitespace-nowrap">Tx framerate</th>
+                      <th className="text-right py-2 px-3 font-medium whitespace-nowrap">Tx packets sent</th>
+                      <th className="text-right py-2 px-3 font-medium whitespace-nowrap">Tx packets lost</th>
+                      <th className="text-right py-2 px-3 font-medium whitespace-nowrap">Tx current packet loss</th>
+                      <th className="text-right py-2 px-3 font-medium whitespace-nowrap">Tx jitter (ms)</th>
+                      <th className="text-left py-2 px-3 font-medium whitespace-nowrap">Rx codec</th>
+                      <th className="text-right py-2 px-3 font-medium whitespace-nowrap">Rx bitrate (kbps)</th>
+                      <th className="text-left py-2 px-3 font-medium whitespace-nowrap">Rx resolution</th>
+                      <th className="text-right py-2 px-3 font-medium whitespace-nowrap">Rx framerate</th>
+                      <th className="text-right py-2 px-3 font-medium whitespace-nowrap">Rx packets received</th>
+                      <th className="text-right py-2 px-3 font-medium whitespace-nowrap">Rx packets lost</th>
+                      <th className="text-right py-2 px-3 font-medium whitespace-nowrap">Rx current packet loss</th>
+                      <th className="text-right py-2 px-3 font-medium whitespace-nowrap">Rx jitter (ms)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {streams.map(ms => (
+                      <tr
+                        key={ms.id}
+                        className="border-b border-gray-50 dark:border-gray-700/30 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-200"
+                      >
+                        <td className="py-2 px-3 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span>{streamTypeIcon(ms.streamType)}</span>
+                            <span className="capitalize">{ms.streamType}</span>
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 whitespace-nowrap">
+                          {ms.startTime ? formatDateTime(ms.startTime) : '-'}
+                        </td>
+                        <td className="py-2 px-3 whitespace-nowrap">{formatText(ms.node)}</td>
+                        <td className="py-2 px-3 whitespace-nowrap">{formatText(ms.txCodec)}</td>
+                        <td className="py-2 px-3 text-right whitespace-nowrap">{formatInteger(ms.txBitrate)}</td>
+                        <td className="py-2 px-3 whitespace-nowrap">{formatText(ms.txResolution)}</td>
+                        <td className="py-2 px-3 text-right whitespace-nowrap">{formatNumber(ms.txFps, 1)}</td>
+                        <td className="py-2 px-3 text-right whitespace-nowrap">{formatInteger(ms.txPacketsSent)}</td>
+                        <td className="py-2 px-3 text-right whitespace-nowrap">{formatInteger(ms.txPacketsLost)}</td>
+                        <td className={`py-2 px-3 text-right whitespace-nowrap ${lossColorClass(ms.txCurrentPacketLoss)}`}>
+                          {formatLossPercent(ms.txCurrentPacketLoss)}
+                        </td>
+                        <td className="py-2 px-3 text-right whitespace-nowrap">{formatNumber(ms.txJitter, 1)}</td>
+                        <td className="py-2 px-3 whitespace-nowrap">{formatText(ms.rxCodec)}</td>
+                        <td className="py-2 px-3 text-right whitespace-nowrap">{formatInteger(ms.rxBitrate)}</td>
+                        <td className="py-2 px-3 whitespace-nowrap">{formatText(ms.rxResolution)}</td>
+                        <td className="py-2 px-3 text-right whitespace-nowrap">{formatNumber(ms.rxFps, 1)}</td>
+                        <td className="py-2 px-3 text-right whitespace-nowrap">{formatInteger(ms.rxPacketsRecv)}</td>
+                        <td className="py-2 px-3 text-right whitespace-nowrap">{formatInteger(ms.rxPacketsLost)}</td>
+                        <td className={`py-2 px-3 text-right whitespace-nowrap ${lossColorClass(ms.rxCurrentPacketLoss)}`}>
+                          {formatLossPercent(ms.rxCurrentPacketLoss)}
+                        </td>
+                        <td className="py-2 px-3 text-right whitespace-nowrap">{formatNumber(ms.rxJitter, 1)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  {streams.length} {streams.length === 1 ? 'media stream' : 'media streams'}
+                </p>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Quality History */}
       {participant.qualityWindows.length > 0 && (

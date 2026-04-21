@@ -214,30 +214,48 @@ async function storeMediaStreams(callUuid: string, streams: NonNullable<PexipEve
   if (!participant) return
 
   for (const stream of streams) {
-    await prisma.mediaStream.create({
-      data: {
-        participantId: participant.id,
-        streamId: stream.stream_id ?? null,
-        streamType: stream.stream_type,
-        rxBitrate: stream.rx_bitrate ?? null,
-        rxCodec: stream.rx_codec ?? null,
-        rxFps: stream.rx_fps ?? null,
-        rxPacketLoss: stream.rx_packet_loss ?? null,
-        rxPacketsLost: stream.rx_packets_lost ?? null,
-        rxPacketsRecv: stream.rx_packets_received ?? null,
-        rxResolution: stream.rx_resolution ?? null,
-        txBitrate: stream.tx_bitrate ?? null,
-        txCodec: stream.tx_codec ?? null,
-        txFps: stream.tx_fps ?? null,
-        txPacketLoss: stream.tx_packet_loss ?? null,
-        txPacketsLost: stream.tx_packets_lost ?? null,
-        txPacketsSent: stream.tx_packets_sent ?? null,
-        txResolution: stream.tx_resolution ?? null,
-        startTime: stream.start_time ? new Date(stream.start_time * 1000) : null,
-        endTime: stream.end_time ? new Date(stream.end_time * 1000) : null,
-        node: stream.node ?? null,
-      }
-    })
+    const data = {
+      participantId: participant.id,
+      streamId: stream.stream_id ?? null,
+      streamType: stream.stream_type,
+      rxBitrate: stream.rx_bitrate ?? null,
+      rxCodec: stream.rx_codec ?? null,
+      rxFps: stream.rx_fps ?? null,
+      rxPacketLoss: stream.rx_packet_loss ?? null,
+      rxCurrentPacketLoss: stream.rx_current_packet_loss ?? null,
+      rxJitter: stream.rx_jitter ?? null,
+      rxPacketsLost: stream.rx_packets_lost ?? null,
+      rxPacketsRecv: stream.rx_packets_received ?? null,
+      rxResolution: stream.rx_resolution ?? null,
+      txBitrate: stream.tx_bitrate ?? null,
+      txCodec: stream.tx_codec ?? null,
+      txFps: stream.tx_fps ?? null,
+      txPacketLoss: stream.tx_packet_loss ?? null,
+      txCurrentPacketLoss: stream.tx_current_packet_loss ?? null,
+      txJitter: stream.tx_jitter ?? null,
+      txPacketsLost: stream.tx_packets_lost ?? null,
+      txPacketsSent: stream.tx_packets_sent ?? null,
+      txResolution: stream.tx_resolution ?? null,
+      startTime: stream.start_time ? new Date(stream.start_time * 1000) : null,
+      endTime: stream.end_time ? new Date(stream.end_time * 1000) : null,
+      node: stream.node ?? null,
+    }
+
+    if (stream.stream_id) {
+      await prisma.mediaStream.upsert({
+        where: {
+          participant_stream_unique: {
+            participantId: participant.id,
+            streamId: stream.stream_id,
+            streamType: stream.stream_type,
+          },
+        },
+        create: data,
+        update: data,
+      })
+    } else {
+      await prisma.mediaStream.create({ data })
+    }
   }
 }
 

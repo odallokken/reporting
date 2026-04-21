@@ -62,29 +62,36 @@ model Participant {
 }
 
 model MediaStream {
-  id              Int         @id @default(autoincrement())
-  participantId   Int
-  participant     Participant @relation(fields: [participantId], references: [id])
-  streamId        String?
-  streamType      String      // audio, video, presentation
-  rxBitrate       Int?
-  rxCodec         String?
-  rxFps           Float?
-  rxPacketLoss    Float?
-  rxPacketsLost   Int?
-  rxPacketsRecv   Int?
-  rxResolution    String?
-  txBitrate       Int?
-  txCodec         String?
-  txFps           Float?
-  txPacketLoss    Float?
-  txPacketsLost   Int?
-  txPacketsSent   Int?
-  txResolution    String?
-  startTime       DateTime?
-  endTime         DateTime?
-  node            String?
-  createdAt       DateTime    @default(now())
+  id                    Int         @id @default(autoincrement())
+  participantId         Int
+  participant           Participant @relation(fields: [participantId], references: [id])
+  streamId              String?
+  streamType            String      // audio, video, presentation
+  rxBitrate             Int?
+  rxCodec               String?
+  rxFps                 Float?
+  rxPacketLoss          Float?      // cumulative packet loss
+  rxCurrentPacketLoss   Float?      // current packet loss (live snapshot)
+  rxPacketsLost         Int?
+  rxPacketsRecv         Int?
+  rxResolution          String?
+  rxJitter              Float?      // jitter in ms
+  txBitrate             Int?
+  txCodec               String?
+  txFps                 Float?
+  txPacketLoss          Float?      // cumulative packet loss
+  txCurrentPacketLoss   Float?      // current packet loss (live snapshot)
+  txPacketsLost         Int?
+  txPacketsSent         Int?
+  txResolution          String?
+  txJitter              Float?      // jitter in ms
+  startTime             DateTime?
+  endTime               DateTime?
+  node                  String?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @default(now()) @updatedAt
+
+  @@unique([participantId, streamId, streamType], name: "participant_stream_unique")
 }
 
 model QualityWindow {
