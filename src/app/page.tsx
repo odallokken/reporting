@@ -24,7 +24,7 @@ export default function DashboardPage() {
     setLoading(true)
     setError(null)
 
-    fetch(`/api/dashboard?days=${windowDays}`, { cache: 'no-store' })
+    fetch(`/api/dashboard?days=${windowDays}`)
       .then((response) => {
         if (!response.ok) throw new Error('Failed to fetch dashboard data')
         return response.json()

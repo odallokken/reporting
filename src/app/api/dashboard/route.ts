@@ -162,7 +162,11 @@ function peakFromIntervals(intervals: TimeInterval[]): number {
     events.push({ time: interval.end, delta: -1 })
   }
 
-  events.sort((a, b) => a.time - b.time || a.delta - b.delta)
+  events.sort((a, b) => {
+    if (a.time !== b.time) return a.time - b.time
+    if (a.delta === b.delta) return 0
+    return a.delta < b.delta ? -1 : 1
+  })
 
   let current = 0
   let peak = 0
