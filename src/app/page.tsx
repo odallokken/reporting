@@ -1,10 +1,11 @@
 export const dynamic = 'force-dynamic'
 
 import { StatsCard } from '@/components/StatsCard'
+import { ActiveStaticVmrCard } from '@/components/ActiveStaticVmrCard'
 import { StaticVmrCountCard } from '@/components/StaticVmrCountCard'
 import { ActivityLineChart } from '@/components/charts/ActivityLineChart'
 import { TopStaticVMRsBarChart } from '@/components/charts/TopStaticVMRsBarChart'
-import { Activity, Users, Wifi } from 'lucide-react'
+import { Users, Wifi } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/utils'
 import type { DashboardStats } from '@/lib/types'
 import Link from 'next/link'
@@ -18,8 +19,7 @@ async function getDashboardData(): Promise<DashboardStats> {
     const excludedIds = await getShortConferenceIds()
     const excludeFilter = excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}
 
-    const [activeVmrs, activeConferences, activeParticipants, recentActivity, recentConferences] = await Promise.all([
-      prisma.vMR.count({ where: { lastUsedAt: { gte: thirtyDaysAgo } } }),
+    const [activeConferences, activeParticipants, recentActivity, recentConferences] = await Promise.all([
       prisma.conference.count({
         where: {
           endTime: null,
@@ -52,7 +52,7 @@ async function getDashboardData(): Promise<DashboardStats> {
     const usageByDay = Object.entries(dayMap).map(([date, count]) => ({ date, count }))
 
     return {
-      activeVmrs,
+      activeVmrs: 0,
       activeConferences,
       activeParticipants,
       recentActivity: recentActivity.map(p => ({
@@ -92,7 +92,7 @@ export default async function DashboardPage() {
         <StatsCard title="Active Conferences" value={data.activeConferences} subtitle="Right now" icon={Wifi} color="green" href="/realtime" />
         <StatsCard title="Active Participants" value={data.activeParticipants} subtitle="Right now" icon={Users} color="teal" href="/realtime" />
         <StaticVmrCountCard />
-        <StatsCard title="Active VMRs" value={data.activeVmrs} subtitle="Used in last 30 days" icon={Activity} color="green" href="/vmrs/static" />
+        <ActiveStaticVmrCard />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">

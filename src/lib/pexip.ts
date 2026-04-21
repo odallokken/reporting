@@ -61,6 +61,15 @@ export interface PexipPaginatedResponse<T> {
   objects?: T[]
 }
 
+interface PexipConferenceConfiguration {
+  name: string
+  resource_uri: string
+}
+
+interface PexipScheduledConferenceConfiguration {
+  conference: string | null
+}
+
 /**
  * Fetch all pages from a paginated Pexip Management API endpoint.
  */
@@ -114,24 +123,54 @@ export async function fetchStaticVmrNames(
   username: string,
   password: string
 ): Promise<string[]> {
-  if (!baseUrl || !username || !password) return []
+  const { objects } = await fetchStaticVmrConfigurations(baseUrl, username, password)
+  return objects.map(v => v.name)
+}
+
+export async function fetchStaticVmrConfigurations<T extends PexipConferenceConfiguration>(
+  baseUrl: string,
+  username: string,
+  password: string,
+  search?: string
+): Promise<{ objects: T[]; error?: string }> {
+  if (!baseUrl || !username || !password) return { objects: [] }
 
   let parsedUrl: URL
   try {
     parsedUrl = new URL(baseUrl)
-    if (parsedUrl.protocol !== 'https:') return []
+    if (parsedUrl.protocol !== 'https:') return { objects: [] }
   } catch {
-    return []
+    return { objects: [] }
   }
 
-  const apiUrl = new URL('/api/admin/configuration/v1/conference/', parsedUrl.origin)
+  const conferenceUrl = new URL('/api/admin/configuration/v1/conference/', parsedUrl.origin)
+  conferenceUrl.searchParams.set('service_type', 'conference')
+  if (search) {
+    conferenceUrl.searchParams.set('name__icontains', search)
+  }
 
-  const { objects } = await fetchAllPexipPages<{ name: string }>(
-    apiUrl.toString(),
-    parsedUrl.origin,
-    username,
-    password
+  const scheduledConferenceUrl = new URL('/api/admin/configuration/v1/scheduled_conference/', parsedUrl.origin)
+
+  const [conferenceResult, scheduledConferenceResult] = await Promise.all([
+    fetchAllPexipPages<T>(conferenceUrl.toString(), parsedUrl.origin, username, password),
+    fetchAllPexipPages<PexipScheduledConferenceConfiguration>(scheduledConferenceUrl.toString(), parsedUrl.origin, username, password),
+  ])
+
+  if (conferenceResult.error) {
+    return conferenceResult
+  }
+
+  if (scheduledConferenceResult.error) {
+    return { objects: [], error: scheduledConferenceResult.error }
+  }
+
+  const scheduledConferenceUris = new Set(
+    scheduledConferenceResult.objects
+      .map((scheduledConference) => scheduledConference.conference)
+      .filter((conference): conference is string => Boolean(conference))
   )
 
-  return objects.map(v => v.name)
+  return {
+    objects: conferenceResult.objects.filter((conference) => !scheduledConferenceUris.has(conference.resource_uri)),
+  }
 }
