@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
     )
 
     // Build where clause: exclude static VMR names and optionally filter by search
+    // Also exclude VMRs with no participants (after excluding short conferences)
     const conditions = []
     if (staticVmrNames.length > 0) {
       conditions.push({ name: { notIn: staticVmrNames } })
@@ -44,22 +45,30 @@ export async function POST(request: NextRequest) {
     if (search) {
       conditions.push({ name: { contains: search } })
     }
-    const where = conditions.length > 0 ? { AND: conditions } : {}
+    // Only include VMRs that have at least one non-excluded conference with participants
+    const confWithParticipants = excludedIds.length > 0
+      ? { some: { id: { notIn: excludedIds }, participants: { some: {} } } }
+      : { some: { participants: { some: {} } } }
+    conditions.push({ conferences: confWithParticipants })
+    const where = { AND: conditions }
 
-    const vmrs = await prisma.vMR.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: sortBy === 'name' ? { name: sortOrder } : { lastUsedAt: sortOrder },
-      include: {
-        conferences: {
-          where: confFilter,
-          select: {
-            _count: { select: { participants: true } }
+    const [vmrs, total] = await Promise.all([
+      prisma.vMR.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: sortBy === 'name' ? { name: sortOrder } : { lastUsedAt: sortOrder },
+        include: {
+          conferences: {
+            where: confFilter,
+            select: {
+              _count: { select: { participants: true } }
+            }
           }
         }
-      }
-    })
+      }),
+      prisma.vMR.count({ where })
+    ])
 
     const vmrsWithStats = vmrs.map(vmr => ({
       id: vmr.id,
@@ -69,9 +78,9 @@ export async function POST(request: NextRequest) {
       totalCalls: vmr.conferences.length,
       totalParticipants: vmr.conferences.reduce((sum, c) => sum + c._count.participants, 0),
       isStale: !vmr.lastUsedAt || vmr.lastUsedAt < staleThreshold
-    })).filter(vmr => vmr.totalParticipants > 0)
+    }))
 
-    return NextResponse.json({ vmrs: vmrsWithStats, total: vmrsWithStats.length, page, limit })
+    return NextResponse.json({ vmrs: vmrsWithStats, total, page, limit })
   } catch (error) {
     console.error('VMRs error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
