@@ -2,10 +2,10 @@ export const dynamic = 'force-dynamic'
 
 import { StatsCard } from '@/components/StatsCard'
 import { ActiveStaticVmrCard } from '@/components/ActiveStaticVmrCard'
+import { LiveActivityStatsCards } from '@/components/LiveActivityStatsCards'
 import { StaticVmrCountCard } from '@/components/StaticVmrCountCard'
 import { ActivityLineChart } from '@/components/charts/ActivityLineChart'
 import { TopStaticVMRsBarChart } from '@/components/charts/TopStaticVMRsBarChart'
-import { Users, Wifi } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/utils'
 import type { DashboardStats } from '@/lib/types'
 import Link from 'next/link'
@@ -89,8 +89,10 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatsCard title="Active Conferences" value={data.activeConferences} subtitle="Right now" icon={Wifi} color="green" href="/realtime" />
-        <StatsCard title="Active Participants" value={data.activeParticipants} subtitle="Right now" icon={Users} color="teal" href="/realtime" />
+        <LiveActivityStatsCards
+          initialActiveConferences={data.activeConferences}
+          initialActiveParticipants={data.activeParticipants}
+        />
         <StaticVmrCountCard />
         <ActiveStaticVmrCard />
       </div>
