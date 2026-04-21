@@ -404,7 +404,13 @@ async function upsertHistoricalParticipant(
     duration?: number | null
   } = {}
 
-  if (existingParticipant.conferenceId !== conferenceId) updateData.conferenceId = conferenceId
+  if (existingParticipant.conferenceId !== conferenceId) {
+    await log('warn', 'Reassigning imported participant to a different conference', {
+      source: LOG_SOURCE,
+      details: `Participant ${existingParticipant.id} (${participant.callUuid ?? participant.name ?? 'unknown'}) moved from conference ${existingParticipant.conferenceId} to ${conferenceId}`,
+    })
+    updateData.conferenceId = conferenceId
+  }
   if (participant.name !== null && participant.name !== existingParticipant.name) updateData.name = participant.name
   if (existingParticipant.joinTime.getTime() !== participant.joinTime.getTime()) updateData.joinTime = participant.joinTime
   if (
