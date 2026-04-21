@@ -47,6 +47,7 @@ export interface RecentEvent {
   leaveTime: string | null
   conference: {
     id: number
+    endTime: string | null
     vmr: { id: number; name: string }
   }
 }
