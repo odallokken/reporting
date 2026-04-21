@@ -8,26 +8,14 @@ interface ScheduledConference {
   id: number
   name: string
   description: string
-  creation_time: string | null
-  duration: number | null
   start_time: string | null
   end_time: string | null
   is_active: boolean
-  service_type: string | null
-  tag: string | null
   aliases: string[]
   organizer: string | null
 }
 
-type SortKey = 'name' | 'organizer' | 'start_time' | 'end_time' | 'duration'
-
-function formatDurationMinutes(minutes: number | null): string {
-  if (minutes == null) return '—'
-  const hours = Math.floor(minutes / 60)
-  const mins = minutes % 60
-  if (hours > 0) return `${hours}h ${mins}m`
-  return `${mins}m`
-}
+type SortKey = 'name' | 'organizer' | 'start_time' | 'end_time'
 
 export default function ScheduledVMRsPage() {
   const { baseUrl, username, password, loaded } = useCredentials()
@@ -81,7 +69,7 @@ export default function ScheduledVMRsPage() {
       const dir = sortOrder === 'asc' ? 1 : -1
       switch (sortBy) {
         case 'name':
-          return dir * a.name.localeCompare(b.name)
+          return dir * (a.name ?? '').localeCompare(b.name ?? '')
         case 'organizer':
           return dir * (a.organizer ?? '').localeCompare(b.organizer ?? '')
         case 'start_time': {
@@ -96,8 +84,6 @@ export default function ScheduledVMRsPage() {
           if (!b.end_time) return -1
           return dir * (new Date(a.end_time).getTime() - new Date(b.end_time).getTime())
         }
-        case 'duration':
-          return dir * ((a.duration ?? 0) - (b.duration ?? 0))
         default:
           return 0
       }
@@ -118,9 +104,14 @@ export default function ScheduledVMRsPage() {
     { key: 'aliases', label: 'Aliases', sortable: false },
     { key: 'start_time', label: 'Start Time', sortable: true },
     { key: 'end_time', label: 'End Time', sortable: true },
-    { key: 'duration', label: 'Duration', sortable: true },
     { key: 'status', label: 'Status', sortable: false },
   ]
+
+  const isWithinTimeframe = (conf: ScheduledConference): boolean => {
+    if (!conf.start_time || !conf.end_time) return false
+    const now = new Date()
+    return now >= new Date(conf.start_time) && now <= new Date(conf.end_time)
+  }
 
   return (
     <div className="p-8">
@@ -195,36 +186,38 @@ export default function ScheduledVMRsPage() {
                 ) : sortedConferences.length === 0 ? (
                   <tr><td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">No scheduled conferences found</td></tr>
                 ) : (
-                  sortedConferences.map(conf => (
-                    <tr key={conf.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{conf.name}</div>
-                        {conf.description && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{conf.description}</div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{conf.organizer ?? '—'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                        {conf.aliases.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {conf.aliases.map((alias, i) => (
-                              <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                                {alias}
-                              </span>
-                            ))}
-                          </div>
-                        ) : '—'}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{formatDateTime(conf.start_time)}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{formatDateTime(conf.end_time)}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{formatDurationMinutes(conf.duration)}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${conf.is_active ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400'}`}>
-                          {conf.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
+                  sortedConferences.map(conf => {
+                    const active = isWithinTimeframe(conf)
+                    return (
+                      <tr key={conf.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{conf.name || '—'}</div>
+                          {conf.description && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{conf.description}</div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{conf.organizer ?? '—'}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                          {conf.aliases.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {conf.aliases.map((alias, i) => (
+                                <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                                  {alias}
+                                </span>
+                              ))}
+                            </div>
+                          ) : '—'}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{formatDateTime(conf.start_time)}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{formatDateTime(conf.end_time)}</td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${active ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400'}`}>
+                            {active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })
                 )}
               </tbody>
             </table>

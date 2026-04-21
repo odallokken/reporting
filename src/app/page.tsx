@@ -20,15 +20,11 @@ async function getDashboardData(): Promise<DashboardStats> {
 
     const [activeVmrs, activeConferences, activeParticipants, recentActivity, recentConferences] = await Promise.all([
       prisma.vMR.count({ where: { lastUsedAt: { gte: thirtyDaysAgo } } }),
-      prisma.vMR.count({
+      prisma.conference.count({
         where: {
-          conferences: {
-            some: {
-              endTime: null,
-              participants: { some: { leaveTime: null } },
-              ...excludeFilter
-            }
-          }
+          endTime: null,
+          participants: { some: { leaveTime: null } },
+          ...excludeFilter,
         }
       }),
       prisma.participant.count({ where: { leaveTime: null, conference: { endTime: null, ...excludeFilter } } }),
