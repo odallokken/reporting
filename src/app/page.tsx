@@ -1,90 +1,97 @@
-export const dynamic = 'force-dynamic'
+'use client'
 
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { ActiveStaticVmrCard } from '@/components/ActiveStaticVmrCard'
 import { LiveActivityStatsCards } from '@/components/LiveActivityStatsCards'
 import { StaticVmrCountCard } from '@/components/StaticVmrCountCard'
-import { ActivityLineChart } from '@/components/charts/ActivityLineChart'
+import { PeakConcurrencyChart } from '@/components/charts/PeakConcurrencyChart'
 import { TopStaticVMRsBarChart } from '@/components/charts/TopStaticVMRsBarChart'
 import { formatRelativeTime } from '@/lib/utils'
 import type { DashboardStats } from '@/lib/types'
-import Link from 'next/link'
-import { prisma } from '@/lib/prisma'
-import { format, subDays } from 'date-fns'
-import { getShortConferenceIds } from '@/lib/settings'
 
-async function getDashboardData(): Promise<DashboardStats> {
-  try {
-    const thirtyDaysAgo = subDays(new Date(), 30)
-    const excludedIds = await getShortConferenceIds()
-    const excludeFilter = excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}
+const WINDOW_OPTIONS = [30, 90, 180, 365]
+const SUMMARY_SKELETON_CLASS = 'glass-card rounded-2xl shadow-glass p-6 h-32 animate-pulse'
+const CHART_SKELETON_CLASS = 'glass-card rounded-2xl shadow-glass p-6 h-[380px] animate-pulse'
 
-    const [activeConferences, activeParticipants, recentActivity, recentConferences] = await Promise.all([
-      prisma.conference.count({
-        where: {
-          endTime: null,
-          participants: { some: { leaveTime: null } },
-          ...excludeFilter,
-        }
-      }),
-      prisma.participant.count({ where: { leaveTime: null, conference: { endTime: null, ...excludeFilter } } }),
-      prisma.participant.findMany({
-        take: 10,
-        orderBy: { joinTime: 'desc' },
-        where: { conference: excludeFilter },
-        include: { conference: { include: { vmr: true } } }
-      }),
-      prisma.conference.findMany({
-        where: { startTime: { gte: thirtyDaysAgo }, ...excludeFilter },
-        select: { startTime: true }
+export default function DashboardPage() {
+  const [data, setData] = useState<DashboardStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [windowDays, setWindowDays] = useState(30)
+
+  useEffect(() => {
+    setLoading(true)
+    setError(null)
+
+    fetch(`/api/dashboard?days=${windowDays}`)
+      .then((response) => {
+        if (!response.ok) throw new Error('Failed to fetch dashboard data')
+        return response.json()
       })
-    ])
+      .then(setData)
+      .catch((fetchError: Error) => setError(fetchError.message))
+      .finally(() => setLoading(false))
+  }, [windowDays])
 
-    const dayMap: Record<string, number> = {}
-    for (let i = 0; i < 30; i++) {
-      const d = subDays(new Date(), 29 - i)
-      dayMap[format(d, 'yyyy-MM-dd')] = 0
-    }
-    for (const conf of recentConferences) {
-      const key = format(new Date(conf.startTime), 'yyyy-MM-dd')
-      if (key in dayMap) dayMap[key]++
-    }
-    const usageByDay = Object.entries(dayMap).map(([date, count]) => ({ date, count }))
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Loading dashboard...</p>
+        </div>
 
-    return {
-      activeVmrs: 0,
-      activeConferences,
-      activeParticipants,
-      recentActivity: recentActivity.map(p => ({
-        id: p.id,
-        name: p.name,
-        joinTime: p.joinTime.toISOString(),
-        leaveTime: p.leaveTime?.toISOString() ?? null,
-        conference: {
-          id: p.conference.id,
-          endTime: p.conference.endTime?.toISOString() ?? null,
-          vmr: { id: p.conference.vmr.id, name: p.conference.vmr.name },
-        },
-      })),
-      usageByDay,
-      topVmrs: []
-    }
-  } catch {
-    return {
-      activeVmrs: 0,
-      activeConferences: 0, activeParticipants: 0,
-      recentActivity: [], usageByDay: [], topVmrs: []
-    }
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className={SUMMARY_SKELETON_CLASS} />
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {Array.from({ length: 2 }).map((_, index) => (
+            <div key={index} className={CHART_SKELETON_CLASS} />
+          ))}
+        </div>
+
+        <div className={CHART_SKELETON_CLASS} />
+      </div>
+    )
   }
-}
 
-export default async function DashboardPage() {
-  const data = await getDashboardData()
+  if (error || !data) {
+    return (
+      <div className="p-8">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Dashboard</h1>
+        <p className="text-red-500">{error ?? 'Dashboard data is unavailable right now'}</p>
+      </div>
+    )
+  }
 
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Overview of your Pexip Infinity environment</p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">Overview of your Pexip Infinity environment with participant concurrency for the last {data.windowDays} days.</p>
+          </div>
+          <div>
+            <label htmlFor="dashboard-window-days" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time span</label>
+            <select
+              id="dashboard-window-days"
+              value={windowDays}
+              onChange={(event) => setWindowDays(Number.parseInt(event.target.value, 10))}
+              className="px-3 py-2 border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-card/60 rounded-xl text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              {WINDOW_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  Last {option} days
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -98,8 +105,9 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="glass-card rounded-2xl shadow-glass p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Conference Activity (Last 30 Days)</h2>
-          <ActivityLineChart data={data.usageByDay} />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Peak Concurrent Participants</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Per-day peak based on overlapping participant intervals across the last {data.windowDays} days.</p>
+          <PeakConcurrencyChart data={data.peakConcurrency} />
         </div>
         <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Top 5 Most Active VMRs</h2>
