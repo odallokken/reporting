@@ -63,7 +63,7 @@ export default function DashboardPage() {
     return (
       <div className="p-8">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Dashboard</h1>
-        <p className="text-red-500">{error ?? 'Failed to load dashboard data'}</p>
+        <p className="text-red-500">{error ?? 'Dashboard data is unavailable right now'}</p>
       </div>
     )
   }
