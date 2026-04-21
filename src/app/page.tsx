@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic'
 
-import { StatsCard } from '@/components/StatsCard'
 import { ActiveStaticVmrCard } from '@/components/ActiveStaticVmrCard'
 import { LiveActivityStatsCards } from '@/components/LiveActivityStatsCards'
 import { StaticVmrCountCard } from '@/components/StaticVmrCountCard'
