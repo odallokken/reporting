@@ -573,9 +573,8 @@ export default function ParticipantDetailPage() {
         const ageSeconds = liveFetchedAt
           ? Math.max(0, Math.floor((Date.now() - new Date(liveFetchedAt).getTime()) / 1000))
           : null
-        // Reference liveAgeTick so the eslint react-hooks dep check is happy
-        // and the indicator re-renders every second.
-        void liveAgeTick
+        // Note: `liveAgeTick` is what makes the indicator below re-render every
+        // second; it doesn't need to appear in this expression.
 
         return (
           <div className="mt-6 glass-card rounded-2xl shadow-glass p-6">
@@ -585,6 +584,7 @@ export default function ParticipantDetailPage() {
               </h2>
               {isActiveSession && liveSource && (
                 <span
+                  data-tick={liveAgeTick}
                   className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     liveSource === 'live'
                       ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'

@@ -94,51 +94,57 @@ export async function cleanupHistoricalDuplicates(): Promise<HistoryCleanupResul
     return result
   }
 
-  await prisma.$transaction(async (tx) => {
-    const touchedConferenceIds = new Set<number>()
+  // Process each duplicate group in its own transaction so a single problem
+  // group can't roll back work for unrelated groups, and so we never exceed
+  // Prisma's default interactive-transaction timeout (5s) on large datasets.
+  for (const group of duplicateGroups) {
+    await prisma.$transaction(
+      async (tx) => {
+        const canonicalConference = chooseCanonicalConference(group)
 
-    for (const group of duplicateGroups) {
-      const canonicalConference = chooseCanonicalConference(group)
-      touchedConferenceIds.add(canonicalConference.id)
+        for (const duplicateConference of group) {
+          if (duplicateConference.id === canonicalConference.id) continue
 
-      for (const duplicateConference of group) {
-        if (duplicateConference.id === canonicalConference.id) continue
-
-        for (const participant of duplicateConference.participants) {
-          const merged = await mergeParticipantIntoConference(tx, canonicalConference.id, participant)
-          if (merged.merged) {
-            result.mergedParticipants += 1
-            result.deletedParticipants += 1
-            result.reparentedMediaStreams += participant.mediaStreams.length
-            result.reparentedQualityWindows += participant.qualityWindows.length
-          } else if (merged.moved) {
-            result.movedParticipants += 1
+          for (const participant of duplicateConference.participants) {
+            const merged = await mergeParticipantIntoConference(tx, canonicalConference.id, participant)
+            if (merged.merged) {
+              result.mergedParticipants += 1
+              result.deletedParticipants += 1
+              result.reparentedMediaStreams += participant.mediaStreams.length
+              result.reparentedQualityWindows += participant.qualityWindows.length
+            } else if (merged.moved) {
+              result.movedParticipants += 1
+            }
           }
+
+          await tx.conference.delete({ where: { id: duplicateConference.id } })
+          result.deletedConferences += 1
         }
 
-        await tx.conference.delete({ where: { id: duplicateConference.id } })
-        result.deletedConferences += 1
-      }
+        // Update the canonical row after duplicate deletes so any adopted unique values
+        // (for example historyId/callId) cannot conflict with still-existing duplicates.
+        const conferenceUpdate = buildConferenceUpdate(canonicalConference, group)
+        if (Object.keys(conferenceUpdate).length > 0) {
+          await tx.conference.update({
+            where: { id: canonicalConference.id },
+            data: conferenceUpdate,
+          })
+        }
 
-      // Update the canonical row after duplicate deletes so any adopted unique values
-      // (for example historyId/callId) cannot conflict with still-existing duplicates.
-      const conferenceUpdate = buildConferenceUpdate(canonicalConference, group)
-      if (Object.keys(conferenceUpdate).length > 0) {
-        await tx.conference.update({
-          where: { id: canonicalConference.id },
-          data: conferenceUpdate,
-        })
-      }
-    }
-
-    for (const conferenceId of touchedConferenceIds) {
-      const deduped = await dedupeParticipantsWithinConference(tx, conferenceId)
-      result.mergedParticipants += deduped.mergedParticipants
-      result.deletedParticipants += deduped.deletedParticipants
-      result.reparentedMediaStreams += deduped.reparentedMediaStreams
-      result.reparentedQualityWindows += deduped.reparentedQualityWindows
-    }
-  })
+        const deduped = await dedupeParticipantsWithinConference(tx, canonicalConference.id)
+        result.mergedParticipants += deduped.mergedParticipants
+        result.deletedParticipants += deduped.deletedParticipants
+        result.reparentedMediaStreams += deduped.reparentedMediaStreams
+        result.reparentedQualityWindows += deduped.reparentedQualityWindows
+      },
+      {
+        // Allow up to 30s per group; SQLite + many sub-operations can easily
+        // exceed Prisma's 5s default which used to silently abort the cleanup.
+        timeout: 30_000,
+        maxWait: 10_000,
+      },
+    )
+  }
 
   return result
 }
@@ -391,10 +397,37 @@ async function mergeParticipantRows(
   }
 
   if (duplicateParticipant.mediaStreams.length > 0) {
-    await tx.mediaStream.updateMany({
+    // With the unique (participantId, streamId, streamType) constraint we
+    // can't blindly reparent — a row with the same key may already exist
+    // under the canonical participant. Reparent one by one and drop any
+    // duplicate-on-conflict source rows.
+    const sourceStreams = await tx.mediaStream.findMany({
       where: { participantId: duplicateParticipant.id },
-      data: { participantId: canonicalParticipantId },
+      select: { id: true, streamId: true, streamType: true },
     })
+
+    for (const source of sourceStreams) {
+      if (source.streamId !== null) {
+        const existing = await tx.mediaStream.findUnique({
+          where: {
+            participant_stream_unique: {
+              participantId: canonicalParticipantId,
+              streamId: source.streamId,
+              streamType: source.streamType,
+            },
+          },
+          select: { id: true },
+        })
+        if (existing) {
+          await tx.mediaStream.delete({ where: { id: source.id } })
+          continue
+        }
+      }
+      await tx.mediaStream.update({
+        where: { id: source.id },
+        data: { participantId: canonicalParticipantId },
+      })
+    }
   }
 
   if (duplicateParticipant.qualityWindows.length > 0) {
