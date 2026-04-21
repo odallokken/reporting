@@ -173,7 +173,7 @@ export default function AnalyticsPage() {
             <select
               id="analytics-window-days"
               value={windowDays}
-              onChange={(event) => setWindowDays(parseInt(event.target.value, 10))}
+              onChange={(event) => setWindowDays(Number.parseInt(event.target.value, 10))}
               className="px-3 py-2 border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-card/60 rounded-xl text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               {WINDOW_OPTIONS.map((option) => (
