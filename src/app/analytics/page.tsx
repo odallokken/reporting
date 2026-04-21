@@ -70,6 +70,9 @@ function formatMetricValue(value: number): string {
   return new Intl.NumberFormat().format(value)
 }
 
+const SUMMARY_SKELETON_CLASS = 'glass-card rounded-2xl shadow-glass p-6 h-32 animate-pulse'
+const CHART_SKELETON_CLASS = 'glass-card rounded-2xl shadow-glass p-6 h-[380px] animate-pulse'
+
 function MetricCard({
   title,
   value,
@@ -132,12 +135,12 @@ export default function AnalyticsPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 mb-8">
           {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="glass-card rounded-2xl shadow-glass p-6 h-[132px] animate-pulse" />
+            <div key={index} className={SUMMARY_SKELETON_CLASS} />
           ))}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="glass-card rounded-2xl shadow-glass p-6 h-[380px] animate-pulse" />
+            <div key={index} className={CHART_SKELETON_CLASS} />
           ))}
         </div>
       </div>

@@ -218,9 +218,9 @@ function buildTopParticipants(participants: AnalyticsParticipant[]) {
   }> = {}
 
   for (const participant of participants) {
-    const preferredLabel = chooseParticipantLabel(participant)
-    const secondaryLabel = chooseParticipantSecondaryLabel(participant, preferredLabel)
-    const key = participantKey(participant, preferredLabel)
+    const preferredLabel = getParticipantPrimaryLabel(participant)
+    const secondaryLabel = getParticipantSecondaryLabel(participant, preferredLabel)
+    const key = getParticipantGroupingKey(participant, preferredLabel)
     const duration = participantDurationSeconds(participant)
 
     if (!participantMap[key]) {
@@ -263,13 +263,13 @@ function buildTopParticipants(participants: AnalyticsParticipant[]) {
     .slice(0, 15)
 }
 
-function chooseParticipantLabel(participant: Pick<AnalyticsParticipant, 'name' | 'identity' | 'sourceAlias' | 'destinationAlias' | 'remoteAddress' | 'callUuid'>): string {
+function getParticipantPrimaryLabel(participant: Pick<AnalyticsParticipant, 'name' | 'identity' | 'sourceAlias' | 'destinationAlias' | 'remoteAddress' | 'callUuid'>): string {
   const displayName = cleanDisplayName(participant.name)
   const alias = cleanIdentifier(participant.sourceAlias) ?? cleanIdentifier(participant.identity) ?? cleanIdentifier(participant.destinationAlias)
   return displayName ?? alias ?? cleanIdentifier(participant.remoteAddress) ?? participant.callUuid ?? 'Unknown participant'
 }
 
-function chooseParticipantSecondaryLabel(
+function getParticipantSecondaryLabel(
   participant: Pick<AnalyticsParticipant, 'identity' | 'sourceAlias' | 'destinationAlias'>,
   primaryLabel: string,
 ): string | null {
@@ -278,7 +278,7 @@ function chooseParticipantSecondaryLabel(
   return alias.toLowerCase() === primaryLabel.toLowerCase() ? null : alias
 }
 
-function participantKey(
+function getParticipantGroupingKey(
   participant: Pick<AnalyticsParticipant, 'name' | 'identity' | 'sourceAlias' | 'destinationAlias' | 'remoteAddress' | 'callUuid'>,
   fallbackLabel: string,
 ): string {
@@ -305,7 +305,7 @@ function cleanIdentifier(value: string | null | undefined): string | null {
 
   const bracketMatch = trimmed.match(/<([^>]+)>/)
   const innerValue = bracketMatch?.[1] ?? trimmed
-  const withoutProtocol = innerValue.replace(/^(sip|sips|h323|teams|msteams|mailto):/i, '')
+  const withoutProtocol = innerValue.replace(/^(sip|sips|h323|teams|msteams|ms-teams|mailto):/i, '')
   const normalized = withoutProtocol.split(';')[0].trim().replace(/^['"]|['"]$/g, '')
 
   return normalized || null
