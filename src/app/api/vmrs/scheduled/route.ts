@@ -14,6 +14,7 @@ interface PexipScheduledConference {
   resource_uri: string
   service_type: string | null
   tag: string | null
+  organizer: string | null
 }
 
 interface PexipScheduledAlias {
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
         service_type: conf.service_type ?? null,
         tag: conf.tag ?? null,
         aliases: aliasMap.get(conf.resource_uri) ?? [],
+        organizer: conf.organizer ?? null,
       }))
       .filter(conf => {
         if (!search) return true

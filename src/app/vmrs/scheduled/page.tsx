@@ -16,9 +16,10 @@ interface ScheduledConference {
   service_type: string | null
   tag: string | null
   aliases: string[]
+  organizer: string | null
 }
 
-type SortKey = 'name' | 'start_time' | 'end_time' | 'duration'
+type SortKey = 'name' | 'organizer' | 'start_time' | 'end_time' | 'duration'
 
 function formatDurationMinutes(minutes: number | null): string {
   if (minutes == null) return '—'
@@ -81,6 +82,8 @@ export default function ScheduledVMRsPage() {
       switch (sortBy) {
         case 'name':
           return dir * a.name.localeCompare(b.name)
+        case 'organizer':
+          return dir * (a.organizer ?? '').localeCompare(b.organizer ?? '')
         case 'start_time': {
           if (!a.start_time && !b.start_time) return 0
           if (!a.start_time) return 1
@@ -110,7 +113,8 @@ export default function ScheduledVMRsPage() {
   const missingCredentials = loaded && (!baseUrl || !username || !password)
 
   const columns: { key: SortKey | 'aliases' | 'status'; label: string; sortable: boolean }[] = [
-    { key: 'name', label: 'Name', sortable: true },
+    { key: 'name', label: 'Meeting Title', sortable: true },
+    { key: 'organizer', label: 'Organizer', sortable: true },
     { key: 'aliases', label: 'Aliases', sortable: false },
     { key: 'start_time', label: 'Start Time', sortable: true },
     { key: 'end_time', label: 'End Time', sortable: true },
@@ -199,6 +203,7 @@ export default function ScheduledVMRsPage() {
                           <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{conf.description}</div>
                         )}
                       </td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{conf.organizer ?? '—'}</td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                         {conf.aliases.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
