@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     const confUrl = new URL('/api/admin/configuration/v1/scheduled_conference/', parsedUrl.origin)
     const aliasUrl = new URL('/api/admin/configuration/v1/scheduled_alias/', parsedUrl.origin)
     const vmrUrl = new URL('/api/admin/configuration/v1/conference/', parsedUrl.origin)
-    vmrUrl.searchParams.set('service_type', 'scheduled')
+    vmrUrl.searchParams.set('service_type', 'conference')
 
     const [confResult, aliasResult, vmrResult] = await Promise.all([
       fetchAllPexipPages<PexipScheduledConference>(
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
         const linkedVmr = conf.conference ? vmrMap.get(conf.conference) : undefined
         const scheduledAliases = aliasMap.get(conf.resource_uri) ?? []
         const vmrAliases = linkedVmr?.aliases?.map(a => a.alias) ?? []
-        const aliases = scheduledAliases.length > 0 ? scheduledAliases : vmrAliases
+        const aliases = [...new Set([...scheduledAliases, ...vmrAliases])]
         return {
           id: conf.id,
           name: (conf.name || linkedVmr?.name) ?? '',

@@ -9,7 +9,7 @@ const links = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/vmrs/static', label: 'Static VMRs', icon: Video },
   { href: '/vmrs/dynamic', label: 'Dynamic VMRs', icon: Zap },
-  { href: '/vmrs/scheduled', label: 'Scheduled VMR calls', icon: Calendar },
+  { href: '/vmrs/scheduled', label: 'Scheduled VMRs', icon: Calendar },
   { href: '/realtime', label: 'Real-time', icon: Activity },
   { href: '/quality', label: 'Call Quality', icon: ShieldCheck },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },

@@ -38,22 +38,16 @@ export async function POST(request: NextRequest) {
     }
 
     const apiUrl = new URL('/api/admin/configuration/v1/conference/', parsedUrl.origin)
+    apiUrl.searchParams.set('service_type', 'conference')
     if (search) {
       apiUrl.searchParams.set('name__icontains', search)
     }
 
     if (countOnly) {
       apiUrl.searchParams.set('limit', '0')
-      // Fetch total count and scheduled count in parallel so we can subtract
-      const scheduledUrl = new URL(apiUrl.toString())
-      scheduledUrl.searchParams.set('service_type', 'scheduled')
       let totalResponse: Response
-      let scheduledResponse: Response
       try {
-        ;[totalResponse, scheduledResponse] = await Promise.all([
-          fetchWithBasicAuth(apiUrl.toString(), username, password),
-          fetchWithBasicAuth(scheduledUrl.toString(), username, password)
-        ])
+        totalResponse = await fetchWithBasicAuth(apiUrl.toString(), username, password)
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
         return NextResponse.json({ error: `Could not reach Management Node: ${message}` }, { status: 502 })
@@ -62,11 +56,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Pexip API returned ${totalResponse.status}` }, { status: 502 })
       }
       const totalData = await totalResponse.json() as { meta?: { total_count?: number } }
-      const scheduledData = scheduledResponse.ok
-        ? await scheduledResponse.json() as { meta?: { total_count?: number } }
-        : { meta: { total_count: 0 } }
-      const total = (totalData.meta?.total_count ?? 0) - (scheduledData.meta?.total_count ?? 0)
-      return NextResponse.json({ total: Math.max(total, 0) })
+      return NextResponse.json({ total: totalData.meta?.total_count ?? 0 })
     }
 
     const { objects: allVmrs, error: fetchError } = await fetchAllPexipPages<PexipConference>(
@@ -80,11 +70,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: fetchError }, { status: 502 })
     }
 
-    // Exclude scheduled VMRs — they belong in the Scheduled VMRs page
-    const vmrs = allVmrs.filter(v => v.service_type !== 'scheduled')
-
     // Cross-reference with local database to get lastUsedAt and totalConferences
-    const vmrNames = vmrs.map(v => v.name)
+    const vmrNames = allVmrs.map(v => v.name)
     const localVmrs = await prisma.vMR.findMany({
       where: { name: { in: vmrNames } },
       select: {
@@ -107,7 +94,7 @@ export async function POST(request: NextRequest) {
     const localMap = new Map(localVmrs.map(v => [v.name, v]))
 
     return NextResponse.json({
-      vmrs: vmrs.map(v => {
+      vmrs: allVmrs.map(v => {
         const local = localMap.get(v.name)
         return {
           id: v.id,
@@ -121,7 +108,7 @@ export async function POST(request: NextRequest) {
           totalConferences: local?._count.conferences ?? 0,
         }
       }),
-      total: vmrs.length
+      total: allVmrs.length
     })
   } catch (error) {
     console.error('Static VMRs error:', error)
