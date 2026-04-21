@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
     )
 
     // Build where clause: exclude static VMR names and optionally filter by search
+    // Also exclude VMRs with no participants (after excluding short conferences)
     const conditions = []
     if (staticVmrNames.length > 0) {
       conditions.push({ name: { notIn: staticVmrNames } })
@@ -44,7 +45,12 @@ export async function POST(request: NextRequest) {
     if (search) {
       conditions.push({ name: { contains: search } })
     }
-    const where = conditions.length > 0 ? { AND: conditions } : {}
+    // Only include VMRs that have at least one non-excluded conference with participants
+    const confWithParticipants = excludedIds.length > 0
+      ? { some: { id: { notIn: excludedIds }, participants: { some: {} } } }
+      : { some: { participants: { some: {} } } }
+    conditions.push({ conferences: confWithParticipants })
+    const where = { AND: conditions }
 
     const [vmrs, total] = await Promise.all([
       prisma.vMR.findMany({
