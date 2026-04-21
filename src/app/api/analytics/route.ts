@@ -337,6 +337,8 @@ function participantDurationSeconds(
   const derived = (effectiveEnd.getTime() - participant.joinTime.getTime()) / 1000
   const calculatedDuration = derived > 0 ? derived : 0
   const recordedDuration = typeof participant.duration === 'number' && participant.duration > 0 ? participant.duration : 0
+  // Imported history and realtime updates do not always agree on duration completeness.
+  // Keep the larger non-negative value so analytics do not undercount connected time.
   return Math.max(recordedDuration, calculatedDuration)
 }
 
