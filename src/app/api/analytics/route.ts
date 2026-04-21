@@ -335,9 +335,9 @@ function participantDurationSeconds(
 ): number {
   const effectiveEnd = effectiveParticipantEndTime(participant, referenceTime)
   const derived = (effectiveEnd.getTime() - participant.joinTime.getTime()) / 1000
-  const derivedDuration = derived > 0 ? derived : 0
-  const storedDuration = typeof participant.duration === 'number' && participant.duration > 0 ? participant.duration : 0
-  return Math.max(storedDuration, derivedDuration)
+  const durationFromTimestamps = derived > 0 ? derived : 0
+  const durationFromDatabase = typeof participant.duration === 'number' && participant.duration > 0 ? participant.duration : 0
+  return Math.max(durationFromDatabase, durationFromTimestamps)
 }
 
 function effectiveParticipantEndTime(
@@ -568,7 +568,7 @@ function roundToSingleDecimal(value: number): number {
 }
 
 function getWindowDays(value: string | null): number {
-  const parsed = Number.parseInt(value ?? '', 10)
-  if (Number.isNaN(parsed)) return DEFAULT_WINDOW_DAYS
-  return Math.min(MAX_WINDOW_DAYS, Math.max(1, parsed))
+  const parsedDays = Number.parseInt(value ?? '', 10)
+  if (Number.isNaN(parsedDays)) return DEFAULT_WINDOW_DAYS
+  return Math.min(MAX_WINDOW_DAYS, Math.max(1, parsedDays))
 }
