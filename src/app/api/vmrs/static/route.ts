@@ -44,21 +44,32 @@ export async function POST(request: NextRequest) {
 
     if (countOnly) {
       apiUrl.searchParams.set('limit', '0')
-      let response: Response
+      // Fetch total count and scheduled count in parallel so we can subtract
+      const scheduledUrl = new URL(apiUrl.toString())
+      scheduledUrl.searchParams.set('service_type', 'scheduled')
+      let totalResponse: Response
+      let scheduledResponse: Response
       try {
-        response = await fetchWithBasicAuth(apiUrl.toString(), username, password)
+        ;[totalResponse, scheduledResponse] = await Promise.all([
+          fetchWithBasicAuth(apiUrl.toString(), username, password),
+          fetchWithBasicAuth(scheduledUrl.toString(), username, password)
+        ])
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
         return NextResponse.json({ error: `Could not reach Management Node: ${message}` }, { status: 502 })
       }
-      if (!response.ok) {
-        return NextResponse.json({ error: `Pexip API returned ${response.status}` }, { status: 502 })
+      if (!totalResponse.ok) {
+        return NextResponse.json({ error: `Pexip API returned ${totalResponse.status}` }, { status: 502 })
       }
-      const data = await response.json() as { meta?: { total_count?: number } }
-      return NextResponse.json({ total: data.meta?.total_count ?? 0 })
+      const totalData = await totalResponse.json() as { meta?: { total_count?: number } }
+      const scheduledData = scheduledResponse.ok
+        ? await scheduledResponse.json() as { meta?: { total_count?: number } }
+        : { meta: { total_count: 0 } }
+      const total = (totalData.meta?.total_count ?? 0) - (scheduledData.meta?.total_count ?? 0)
+      return NextResponse.json({ total: Math.max(total, 0) })
     }
 
-    const { objects: vmrs, error: fetchError } = await fetchAllPexipPages<PexipConference>(
+    const { objects: allVmrs, error: fetchError } = await fetchAllPexipPages<PexipConference>(
       apiUrl.toString(),
       parsedUrl.origin,
       username,
@@ -68,6 +79,9 @@ export async function POST(request: NextRequest) {
     if (fetchError) {
       return NextResponse.json({ error: fetchError }, { status: 502 })
     }
+
+    // Exclude scheduled VMRs — they belong in the Scheduled VMRs page
+    const vmrs = allVmrs.filter(v => v.service_type !== 'scheduled')
 
     // Cross-reference with local database to get lastUsedAt and totalConferences
     const vmrNames = vmrs.map(v => v.name)
