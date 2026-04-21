@@ -101,14 +101,6 @@ export async function cleanupHistoricalDuplicates(): Promise<HistoryCleanupResul
       const canonicalConference = chooseCanonicalConference(group)
       touchedConferenceIds.add(canonicalConference.id)
 
-      const conferenceUpdate = buildConferenceUpdate(canonicalConference, group)
-      if (Object.keys(conferenceUpdate).length > 0) {
-        await tx.conference.update({
-          where: { id: canonicalConference.id },
-          data: conferenceUpdate,
-        })
-      }
-
       for (const duplicateConference of group) {
         if (duplicateConference.id === canonicalConference.id) continue
 
@@ -126,6 +118,16 @@ export async function cleanupHistoricalDuplicates(): Promise<HistoryCleanupResul
 
         await tx.conference.delete({ where: { id: duplicateConference.id } })
         result.deletedConferences += 1
+      }
+
+      // Update the canonical row after duplicate deletes so any adopted unique values
+      // (for example historyId/callId) cannot conflict with still-existing duplicates.
+      const conferenceUpdate = buildConferenceUpdate(canonicalConference, group)
+      if (Object.keys(conferenceUpdate).length > 0) {
+        await tx.conference.update({
+          where: { id: canonicalConference.id },
+          data: conferenceUpdate,
+        })
       }
     }
 

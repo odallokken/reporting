@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { fetchWithBasicAuth, fetchAllPexipPages } from '@/lib/pexip'
+import { fetchStaticVmrConfigurations } from '@/lib/pexip'
 
 interface PexipConference {
   id: number
@@ -12,6 +12,7 @@ interface PexipConference {
   allow_guests: boolean
   tag: string | null
   service_type: string | null
+  resource_uri: string
 }
 
 export async function POST(request: NextRequest) {
@@ -37,37 +38,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid Management Node URL' }, { status: 400 })
     }
 
-    const apiUrl = new URL('/api/admin/configuration/v1/conference/', parsedUrl.origin)
-    apiUrl.searchParams.set('service_type', 'conference')
-    if (search) {
-      apiUrl.searchParams.set('name__icontains', search)
-    }
-
-    if (countOnly) {
-      apiUrl.searchParams.set('limit', '0')
-      let totalResponse: Response
-      try {
-        totalResponse = await fetchWithBasicAuth(apiUrl.toString(), username, password)
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err)
-        return NextResponse.json({ error: `Could not reach Management Node: ${message}` }, { status: 502 })
-      }
-      if (!totalResponse.ok) {
-        return NextResponse.json({ error: `Pexip API returned ${totalResponse.status}` }, { status: 502 })
-      }
-      const totalData = await totalResponse.json() as { meta?: { total_count?: number } }
-      return NextResponse.json({ total: totalData.meta?.total_count ?? 0 })
-    }
-
-    const { objects: allVmrs, error: fetchError } = await fetchAllPexipPages<PexipConference>(
-      apiUrl.toString(),
+    const { objects: allVmrs, error: fetchError } = await fetchStaticVmrConfigurations<PexipConference>(
       parsedUrl.origin,
       username,
-      password
+      password,
+      search,
     )
 
     if (fetchError) {
       return NextResponse.json({ error: fetchError }, { status: 502 })
+    }
+
+    if (countOnly) {
+      return NextResponse.json({ total: allVmrs.length })
     }
 
     // Cross-reference with local database to get lastUsedAt and totalConferences
