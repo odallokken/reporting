@@ -396,14 +396,31 @@ async function upsertHistoricalParticipant(
     })
   }
 
+  const updateData: {
+    conferenceId?: number
+    name?: string | null
+    joinTime?: Date
+    leaveTime?: Date | null
+    duration?: number | null
+  } = {}
+
+  if (existingParticipant.conferenceId !== conferenceId) updateData.conferenceId = conferenceId
+  if (participant.name !== null && participant.name !== existingParticipant.name) updateData.name = participant.name
+  if (existingParticipant.joinTime.getTime() !== participant.joinTime.getTime()) updateData.joinTime = participant.joinTime
+  if (
+    (existingParticipant.leaveTime?.getTime() ?? null) !== (participant.leaveTime?.getTime() ?? null)
+    && participant.leaveTime !== null
+  ) {
+    updateData.leaveTime = participant.leaveTime
+  }
+  if (duration !== null && duration !== existingParticipant.duration) updateData.duration = duration
+
+  if (Object.keys(updateData).length === 0) {
+    return existingParticipant
+  }
+
   return prisma.participant.update({
     where: { id: existingParticipant.id },
-    data: {
-      conferenceId,
-      name: participant.name ?? existingParticipant.name,
-      joinTime: participant.joinTime,
-      leaveTime: participant.leaveTime ?? existingParticipant.leaveTime,
-      duration: duration ?? existingParticipant.duration,
-    },
+    data: updateData,
   })
 }

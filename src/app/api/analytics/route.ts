@@ -351,6 +351,9 @@ function effectiveParticipantEndTime(
   participant: Pick<AnalyticsParticipant, 'leaveTime' | 'conferenceEndTime'>,
   fallbackEndTime: Date,
 ): Date {
+  // History data can be missing participant leave times even when the conference itself has ended.
+  // Prefer the participant leave time when present, otherwise fall back to the conference end,
+  // and only use the supplied fallback for still-active calls.
   return participant.leaveTime ?? participant.conferenceEndTime ?? fallbackEndTime
 }
 
