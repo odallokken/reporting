@@ -66,6 +66,7 @@ async function getDashboardData(): Promise<DashboardStats> {
         leaveTime: p.leaveTime?.toISOString() ?? null,
         conference: {
           id: p.conference.id,
+          endTime: p.conference.endTime?.toISOString() ?? null,
           vmr: { id: p.conference.vmr.id, name: p.conference.vmr.name },
         },
       })),
@@ -122,13 +123,13 @@ export default async function DashboardPage() {
           <div className="space-y-1">
             {data.recentActivity.map((event) => (
               <Link key={event.id} href={`/realtime/${event.id}`} aria-label={`View details for ${event.name ?? 'Unknown'} in ${event.conference.vmr.name}`} className="flex items-center gap-4 py-3 px-3 rounded-lg border-b border-gray-100 dark:border-gray-700/30 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${event.leaveTime ? 'bg-red-400' : 'bg-emerald-400'}`} />
+                <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${event.leaveTime || event.conference.endTime ? 'bg-red-400' : 'bg-emerald-400'}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                     {event.name ?? 'Unknown'} — {event.conference.vmr.name}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {event.leaveTime ? 'Left' : 'Joined'} {formatRelativeTime(event.joinTime)}
+                    {event.leaveTime || event.conference.endTime ? 'Left' : 'Joined'} {formatRelativeTime(event.leaveTime || event.conference.endTime || event.joinTime)}
                   </p>
                 </div>
               </Link>
