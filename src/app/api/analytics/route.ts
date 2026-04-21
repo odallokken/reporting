@@ -335,9 +335,9 @@ function participantDurationSeconds(
 ): number {
   const effectiveEnd = effectiveParticipantEndTime(participant, referenceTime)
   const derived = (effectiveEnd.getTime() - participant.joinTime.getTime()) / 1000
-  const durationFromTimestamps = derived > 0 ? derived : 0
-  const durationFromDatabase = typeof participant.duration === 'number' && participant.duration > 0 ? participant.duration : 0
-  return Math.max(durationFromDatabase, durationFromTimestamps)
+  const calculatedDuration = derived > 0 ? derived : 0
+  const recordedDuration = typeof participant.duration === 'number' && participant.duration > 0 ? participant.duration : 0
+  return Math.max(recordedDuration, calculatedDuration)
 }
 
 function effectiveParticipantEndTime(

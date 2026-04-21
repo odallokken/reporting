@@ -164,13 +164,13 @@ export async function fetchStaticVmrConfigurations<T extends PexipConferenceConf
     return { objects: [], error: scheduledConferenceResult.error }
   }
 
-  const scheduledConferenceUris = new Set(
+  const linkedConferenceUris = new Set(
     scheduledConferenceResult.objects
       .map((scheduledConference) => scheduledConference.conference)
       .filter((conference): conference is string => Boolean(conference))
   )
 
   return {
-    objects: conferenceResult.objects.filter((conference) => !scheduledConferenceUris.has(conference.resource_uri)),
+    objects: conferenceResult.objects.filter((conference) => !linkedConferenceUris.has(conference.resource_uri)),
   }
 }
