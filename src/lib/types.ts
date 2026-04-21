@@ -95,6 +95,8 @@ export interface MediaStreamEntry {
   rx_codec: string
   rx_fps: number
   rx_packet_loss: number
+  rx_current_packet_loss?: number
+  rx_jitter?: number
   rx_packets_lost: number
   rx_packets_received: number
   rx_resolution: string
@@ -105,6 +107,8 @@ export interface MediaStreamEntry {
   tx_codec: string
   tx_fps: number
   tx_packet_loss: number
+  tx_current_packet_loss?: number
+  tx_jitter?: number
   tx_packets_lost: number
   tx_packets_sent: number
   tx_resolution: string

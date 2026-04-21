@@ -25,6 +25,6 @@ export async function POST() {
       source: LOG_SOURCE,
       details: message,
     })
-    return NextResponse.json({ error: 'Cleanup failed' }, { status: 500 })
+    return NextResponse.json({ error: `Cleanup failed: ${message}` }, { status: 500 })
   }
 }
