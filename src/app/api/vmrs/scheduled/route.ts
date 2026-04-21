@@ -6,15 +6,14 @@ interface PexipScheduledConference {
   name: string
   description: string
   creation_time: string
-  duration: number
+  duration: number | null
   start_time: string
   end_time: string
   is_active: boolean
   aliases: string[]
+  conference: string
   resource_uri: string
-  service_type: string | null
   tag: string | null
-  organizer: string | null
 }
 
 interface PexipScheduledAlias {
@@ -23,6 +22,14 @@ interface PexipScheduledAlias {
   scheduled_conference: string
   description: string
   resource_uri: string
+}
+
+interface PexipConferenceVMR {
+  name: string
+  description: string
+  aliases: { alias: string }[]
+  resource_uri: string
+  primary_owner_email_address: string | null
 }
 
 export async function POST(request: NextRequest) {
