@@ -19,11 +19,15 @@ export async function GET(request: NextRequest) {
 
     const staticVmrNames = await fetchStaticVmrNames(baseUrl, username, password)
 
+    const confWithParticipants = excludedIds.length > 0
+      ? { some: { id: { notIn: excludedIds }, participants: { some: {} } } }
+      : { some: { participants: { some: {} } } }
+
     const conditions: Record<string, unknown>[] = []
     if (staticVmrNames.length > 0) {
       conditions.push({ name: { notIn: staticVmrNames } })
     }
-    conditions.push({ conferences: { some: { ...(excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}), participants: { some: {} } } } })
+    conditions.push({ conferences: confWithParticipants })
     const where = { AND: conditions }
 
     const vmrs = await prisma.vMR.findMany({
