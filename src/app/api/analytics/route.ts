@@ -2,203 +2,155 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { subDays, format } from 'date-fns'
+import { addDays, format, startOfDay, subDays } from 'date-fns'
 import { getShortConferenceIds } from '@/lib/settings'
+
+const WINDOW_DAYS = 30
+
+type BreakdownItem = { name: string; value: number }
+type PeakConcurrencyPoint = { date: string; peakConferences: number; peakParticipants: number }
+type TimeInterval = { start: number; end: number }
+
+type AnalyticsParticipant = {
+  conferenceId: number
+  name: string | null
+  identity: string | null
+  sourceAlias: string | null
+  destinationAlias: string | null
+  remoteAddress: string | null
+  callUuid: string | null
+  joinTime: Date
+  leaveTime: Date | null
+  duration: number | null
+  protocol: string | null
+  vendor: string | null
+  callDirection: string | null
+  encryption: string | null
+  disconnectReason: string | null
+}
 
 export async function GET() {
   try {
-    const thirtyDaysAgo = subDays(new Date(), 30)
+    const now = new Date()
+    const windowStart = startOfDay(subDays(now, WINDOW_DAYS - 1))
+    const windowEnd = addDays(startOfDay(now), 1)
     const excludedIds = await getShortConferenceIds()
-    const excludeFilter = excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}
+    const excludeConferenceFilter = excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}
 
-    // 1. Protocol breakdown
-    const participantsWithProtocol = await prisma.participant.findMany({
-      where: {
-        joinTime: { gte: thirtyDaysAgo },
-        protocol: { not: null },
-        conference: excludeFilter,
-      },
-      select: { protocol: true },
-    })
+    const [participantsInWindow, participantIntervals, conferencesInWindow, conferenceIntervals] = await Promise.all([
+      prisma.participant.findMany({
+        where: {
+          joinTime: { gte: windowStart, lt: windowEnd },
+          conference: excludeConferenceFilter,
+        },
+        select: {
+          conferenceId: true,
+          name: true,
+          identity: true,
+          sourceAlias: true,
+          destinationAlias: true,
+          remoteAddress: true,
+          callUuid: true,
+          joinTime: true,
+          leaveTime: true,
+          duration: true,
+          protocol: true,
+          vendor: true,
+          callDirection: true,
+          encryption: true,
+          disconnectReason: true,
+        },
+      }),
+      prisma.participant.findMany({
+        where: {
+          joinTime: { lt: windowEnd },
+          OR: [{ leaveTime: null }, { leaveTime: { gte: windowStart } }],
+          conference: excludeConferenceFilter,
+        },
+        select: { joinTime: true, leaveTime: true },
+      }),
+      prisma.conference.findMany({
+        where: {
+          startTime: { gte: windowStart, lt: windowEnd },
+          ...excludeConferenceFilter,
+        },
+        select: {
+          startTime: true,
+          endTime: true,
+          vmr: { select: { name: true } },
+          _count: { select: { participants: true } },
+        },
+      }),
+      prisma.conference.findMany({
+        where: {
+          startTime: { lt: windowEnd },
+          OR: [{ endTime: null }, { endTime: { gte: windowStart } }],
+          ...excludeConferenceFilter,
+        },
+        select: { startTime: true, endTime: true },
+      }),
+    ])
 
-    const protocolCounts: Record<string, number> = {}
-    for (const p of participantsWithProtocol) {
-      const proto = p.protocol ?? 'Unknown'
-      protocolCounts[proto] = (protocolCounts[proto] ?? 0) + 1
-    }
-    const protocolBreakdown = Object.entries(protocolCounts)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
+    const protocolBreakdown = buildSortedBreakdown(participantsInWindow, (participant) => participant.protocol ?? 'Unknown')
+    const vendorBreakdown = buildSortedBreakdown(participantsInWindow, (participant) => normalizeVendor(participant.vendor))
+    const callDirectionBreakdown = buildSortedBreakdown(participantsInWindow, (participant) => participant.callDirection ?? 'Unknown')
+    const disconnectReasons = buildSortedBreakdown(
+      participantsInWindow.filter((participant) => participant.disconnectReason),
+      (participant) => participant.disconnectReason ?? 'Unknown'
+    ).slice(0, 15)
 
-    // 2. Vendor breakdown
-    const participantsWithVendor = await prisma.participant.findMany({
-      where: {
-        joinTime: { gte: thirtyDaysAgo },
-        vendor: { not: null },
-        conference: excludeFilter,
-      },
-      select: { vendor: true },
-    })
+    const encryptionBreakdown = buildEncryptionBreakdown(participantsInWindow)
+    const topParticipants = buildTopParticipants(participantsInWindow)
+    const peakConcurrency = calculatePeakConcurrency(conferenceIntervals, participantIntervals, windowStart, windowEnd)
+    const durationDistribution = buildDurationDistribution(conferencesInWindow)
+    const conferenceActivity = buildConferenceActivity(conferencesInWindow, windowStart)
+    const topVmrs = buildTopVmrs(conferencesInWindow)
 
-    const vendorCounts: Record<string, number> = {}
-    for (const p of participantsWithVendor) {
-      // Normalize vendor strings to brand names
-      const raw = (p.vendor ?? 'Unknown').toLowerCase()
-      let vendor = 'Other'
-      if (raw.includes('cisco') || raw.includes('tandberg')) vendor = 'Cisco'
-      else if (raw.includes('poly') || raw.includes('polycom')) vendor = 'Poly'
-      else if (raw.includes('pexip')) vendor = 'Pexip'
-      else if (raw.includes('chrome') || raw.includes('firefox') || raw.includes('safari') || raw.includes('edge') || raw.includes('mozilla')) vendor = 'Browser'
-      else if (raw.includes('teams') || raw.includes('microsoft') || raw.includes('skype')) vendor = 'Microsoft'
-      else if (raw.includes('zoom')) vendor = 'Zoom'
-      else if (raw.includes('logitech')) vendor = 'Logitech'
-      else vendor = p.vendor ?? 'Unknown'
-      vendorCounts[vendor] = (vendorCounts[vendor] ?? 0) + 1
-    }
-    const vendorBreakdown = Object.entries(vendorCounts)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
+    const peakParticipants = peakConcurrency.reduce((max, point) => Math.max(max, point.peakParticipants), 0)
+    const peakConferences = peakConcurrency.reduce((max, point) => Math.max(max, point.peakConferences), 0)
+    const busiestDay = peakConcurrency.reduce<PeakConcurrencyPoint | null>((best, point) => {
+      if (!best) return point
+      if (point.peakParticipants > best.peakParticipants) return point
+      if (point.peakParticipants === best.peakParticipants && point.peakConferences > best.peakConferences) return point
+      return best
+    }, null)
 
-    // 3. Top users (by join frequency)
-    const allParticipants = await prisma.participant.findMany({
-      where: {
-        joinTime: { gte: thirtyDaysAgo },
-        name: { not: null },
-        conference: excludeFilter,
-      },
-      select: { name: true, duration: true },
-    })
-
-    const userStats: Record<string, { count: number; totalDuration: number }> = {}
-    for (const p of allParticipants) {
-      const name = p.name ?? 'Unknown'
-      if (!userStats[name]) userStats[name] = { count: 0, totalDuration: 0 }
-      userStats[name].count++
-      userStats[name].totalDuration += p.duration ?? 0
-    }
-    const topUsers = Object.entries(userStats)
-      .map(([name, stats]) => ({ name, count: stats.count, totalDuration: Math.round(stats.totalDuration) }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 15)
-
-    // 4. Call direction breakdown
-    const participantsWithDirection = await prisma.participant.findMany({
-      where: {
-        joinTime: { gte: thirtyDaysAgo },
-        callDirection: { not: null },
-        conference: excludeFilter,
-      },
-      select: { callDirection: true },
-    })
-
-    const directionCounts: Record<string, number> = {}
-    for (const p of participantsWithDirection) {
-      const dir = p.callDirection ?? 'Unknown'
-      directionCounts[dir] = (directionCounts[dir] ?? 0) + 1
-    }
-    const callDirectionBreakdown = Object.entries(directionCounts)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-
-    // 5. Encryption compliance
-    const participantsWithEncryption = await prisma.participant.findMany({
-      where: {
-        joinTime: { gte: thirtyDaysAgo },
-        conference: excludeFilter,
-      },
-      select: { encryption: true },
-    })
-
-    let encrypted = 0
-    let unencrypted = 0
-    let encryptionUnknown = 0
-    for (const p of participantsWithEncryption) {
-      const enc = (p.encryption ?? '').toLowerCase()
-      if (enc === 'on' || enc === 'true' || enc === 'yes' || enc === 'encrypted') encrypted++
-      else if (enc === 'off' || enc === 'false' || enc === 'no' || enc === 'unencrypted') unencrypted++
-      else encryptionUnknown++
-    }
-    const encryptionBreakdown = [
-      { name: 'Encrypted', value: encrypted },
-      { name: 'Unencrypted', value: unencrypted },
-      ...(encryptionUnknown > 0 ? [{ name: 'Unknown', value: encryptionUnknown }] : []),
-    ]
-
-    // 6. Peak concurrent usage per day
-    const conferences = await prisma.conference.findMany({
-      where: {
-        startTime: { gte: thirtyDaysAgo },
-        ...excludeFilter,
-      },
-      select: { startTime: true, endTime: true },
-    })
-
-    const participants = await prisma.participant.findMany({
-      where: {
-        joinTime: { gte: thirtyDaysAgo },
-        conference: excludeFilter,
-      },
-      select: { joinTime: true, leaveTime: true },
-    })
-
-    // Calculate peak concurrency per day using an event-based sweep
-    const peakConcurrency = calculatePeakConcurrency(conferences, participants)
-
-    // 7. Conference duration distribution
-    const completedConferences = await prisma.conference.findMany({
-      where: {
-        startTime: { gte: thirtyDaysAgo },
-        endTime: { not: null },
-        ...excludeFilter,
-      },
-      select: { startTime: true, endTime: true },
-    })
-
-    const durationBuckets: Record<string, number> = {
-      '<5m': 0,
-      '5-15m': 0,
-      '15-30m': 0,
-      '30-60m': 0,
-      '1-2h': 0,
-      '2-4h': 0,
-      '>4h': 0,
-    }
-    for (const c of completedConferences) {
-      const durationMin = (new Date(c.endTime!).getTime() - new Date(c.startTime).getTime()) / 60000
-      if (durationMin < 5) durationBuckets['<5m']++
-      else if (durationMin < 15) durationBuckets['5-15m']++
-      else if (durationMin < 30) durationBuckets['15-30m']++
-      else if (durationMin < 60) durationBuckets['30-60m']++
-      else if (durationMin < 120) durationBuckets['1-2h']++
-      else if (durationMin < 240) durationBuckets['2-4h']++
-      else durationBuckets['>4h']++
-    }
-    const durationDistribution = Object.entries(durationBuckets).map(([name, value]) => ({ name, value }))
-
-    // 8. Disconnect reason analysis
-    const participantsWithDisconnect = await prisma.participant.findMany({
-      where: {
-        joinTime: { gte: thirtyDaysAgo },
-        disconnectReason: { not: null },
-        conference: excludeFilter,
-      },
-      select: { disconnectReason: true },
-    })
-
-    const disconnectCounts: Record<string, number> = {}
-    for (const p of participantsWithDisconnect) {
-      const reason = p.disconnectReason ?? 'Unknown'
-      disconnectCounts[reason] = (disconnectCounts[reason] ?? 0) + 1
-    }
-    const disconnectReasons = Object.entries(disconnectCounts)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 15)
+    const averageParticipantsPerConference = conferencesInWindow.length > 0
+      ? roundToSingleDecimal(participantsInWindow.length / conferencesInWindow.length)
+      : 0
+    const averageConferenceDuration = averageDurationSeconds(conferencesInWindow)
+    const largestConference = conferencesInWindow.reduce((max, conference) => Math.max(max, conference._count.participants), 0)
+    const encryptedCount = encryptionBreakdown.find((item) => item.name === 'Encrypted')?.value ?? 0
+    const unencryptedCount = encryptionBreakdown.find((item) => item.name === 'Unencrypted')?.value ?? 0
+    const encryptedShare = encryptedCount + unencryptedCount > 0
+      ? Math.round((encryptedCount / (encryptedCount + unencryptedCount)) * 100)
+      : null
 
     return NextResponse.json({
+      summary: {
+        totalConferences: conferencesInWindow.length,
+        totalParticipantSessions: participantsInWindow.length,
+        uniqueParticipants: topParticipants.length,
+        peakParticipants,
+        peakConferences,
+        averageParticipantsPerConference,
+        averageConferenceDuration,
+        largestConference,
+        encryptedShare,
+      },
+      insights: buildInsights({
+        busiestDay,
+        peakParticipants,
+        encryptedShare,
+        topProtocol: protocolBreakdown[0]?.name ?? null,
+        topVendor: vendorBreakdown[0]?.name ?? null,
+        averageParticipantsPerConference,
+      }),
+      conferenceActivity,
+      topVmrs,
       protocolBreakdown,
       vendorBreakdown,
-      topUsers,
+      topParticipants,
       callDirectionBreakdown,
       encryptionBreakdown,
       peakConcurrency,
@@ -211,64 +163,371 @@ export async function GET() {
   }
 }
 
+function buildSortedBreakdown<T>(items: T[], getName: (item: T) => string): BreakdownItem[] {
+  const counts: Record<string, number> = {}
+
+  for (const item of items) {
+    const name = getName(item).trim() || 'Unknown'
+    counts[name] = (counts[name] ?? 0) + 1
+  }
+
+  return Object.entries(counts)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+}
+
+function normalizeVendor(vendor: string | null): string {
+  const raw = (vendor ?? 'Unknown').toLowerCase()
+  if (!raw || raw === 'unknown') return 'Unknown'
+  if (raw.includes('cisco') || raw.includes('tandberg')) return 'Cisco'
+  if (raw.includes('poly') || raw.includes('polycom')) return 'Poly'
+  if (raw.includes('pexip')) return 'Pexip'
+  if (raw.includes('chrome') || raw.includes('firefox') || raw.includes('safari') || raw.includes('edge') || raw.includes('mozilla')) return 'Browser'
+  if (raw.includes('teams') || raw.includes('microsoft') || raw.includes('skype')) return 'Microsoft'
+  if (raw.includes('zoom')) return 'Zoom'
+  if (raw.includes('logitech')) return 'Logitech'
+  return vendor?.trim() || 'Other'
+}
+
+function buildEncryptionBreakdown(participants: Pick<AnalyticsParticipant, 'encryption'>[]): BreakdownItem[] {
+  let encrypted = 0
+  let unencrypted = 0
+  let unknown = 0
+
+  for (const participant of participants) {
+    const encryption = (participant.encryption ?? '').toLowerCase()
+    if (encryption === 'on' || encryption === 'true' || encryption === 'yes' || encryption === 'encrypted') encrypted++
+    else if (encryption === 'off' || encryption === 'false' || encryption === 'no' || encryption === 'unencrypted') unencrypted++
+    else unknown++
+  }
+
+  return [
+    { name: 'Encrypted', value: encrypted },
+    { name: 'Unencrypted', value: unencrypted },
+    ...(unknown > 0 ? [{ name: 'Unknown', value: unknown }] : []),
+  ]
+}
+
+function buildTopParticipants(participants: AnalyticsParticipant[]) {
+  const participantMap: Record<string, {
+    name: string
+    secondaryLabel: string | null
+    conferenceIds: Set<number>
+    sessionCount: number
+    totalDuration: number
+  }> = {}
+
+  for (const participant of participants) {
+    const preferredLabel = chooseParticipantLabel(participant)
+    const secondaryLabel = chooseParticipantSecondaryLabel(participant, preferredLabel)
+    const key = participantKey(participant, preferredLabel)
+    const duration = participantDurationSeconds(participant)
+
+    if (!participantMap[key]) {
+      participantMap[key] = {
+        name: preferredLabel,
+        secondaryLabel,
+        conferenceIds: new Set<number>(),
+        sessionCount: 0,
+        totalDuration: 0,
+      }
+    }
+
+    const entry = participantMap[key]
+    entry.sessionCount++
+    entry.conferenceIds.add(participant.conferenceId)
+    entry.totalDuration += duration
+
+    if (entry.name.includes('@') && !preferredLabel.includes('@')) {
+      entry.name = preferredLabel
+    }
+    if (!entry.secondaryLabel && secondaryLabel) {
+      entry.secondaryLabel = secondaryLabel
+    }
+  }
+
+  return Object.values(participantMap)
+    .map((entry) => ({
+      name: entry.name,
+      secondaryLabel: entry.secondaryLabel,
+      conferenceCount: entry.conferenceIds.size,
+      sessionCount: entry.sessionCount,
+      totalDuration: Math.round(entry.totalDuration),
+      averageDuration: entry.sessionCount > 0 ? Math.round(entry.totalDuration / entry.sessionCount) : 0,
+    }))
+    .sort((a, b) => {
+      if (b.conferenceCount !== a.conferenceCount) return b.conferenceCount - a.conferenceCount
+      if (b.totalDuration !== a.totalDuration) return b.totalDuration - a.totalDuration
+      return b.sessionCount - a.sessionCount
+    })
+    .slice(0, 15)
+}
+
+function chooseParticipantLabel(participant: Pick<AnalyticsParticipant, 'name' | 'identity' | 'sourceAlias' | 'destinationAlias' | 'remoteAddress' | 'callUuid'>): string {
+  const displayName = cleanDisplayName(participant.name)
+  const alias = cleanIdentifier(participant.sourceAlias) ?? cleanIdentifier(participant.identity) ?? cleanIdentifier(participant.destinationAlias)
+  return displayName ?? alias ?? cleanIdentifier(participant.remoteAddress) ?? participant.callUuid ?? 'Unknown participant'
+}
+
+function chooseParticipantSecondaryLabel(
+  participant: Pick<AnalyticsParticipant, 'identity' | 'sourceAlias' | 'destinationAlias'>,
+  primaryLabel: string,
+): string | null {
+  const alias = cleanIdentifier(participant.sourceAlias) ?? cleanIdentifier(participant.identity) ?? cleanIdentifier(participant.destinationAlias)
+  if (!alias) return null
+  return alias.toLowerCase() === primaryLabel.toLowerCase() ? null : alias
+}
+
+function participantKey(
+  participant: Pick<AnalyticsParticipant, 'name' | 'identity' | 'sourceAlias' | 'destinationAlias' | 'remoteAddress' | 'callUuid'>,
+  fallbackLabel: string,
+): string {
+  const alias = cleanIdentifier(participant.sourceAlias) ?? cleanIdentifier(participant.identity) ?? cleanIdentifier(participant.destinationAlias)
+  if (alias) return alias.toLowerCase()
+
+  const displayName = cleanDisplayName(participant.name)
+  if (displayName) return displayName.toLowerCase()
+
+  return (cleanIdentifier(participant.remoteAddress) ?? participant.callUuid ?? fallbackLabel).toLowerCase()
+}
+
+function cleanDisplayName(value: string | null | undefined): string | null {
+  if (!value) return null
+  const trimmed = value.trim().replace(/\s+/g, ' ')
+  if (!trimmed || trimmed.toLowerCase() === 'unknown') return null
+  return trimmed
+}
+
+function cleanIdentifier(value: string | null | undefined): string | null {
+  if (!value) return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+
+  const bracketMatch = trimmed.match(/<([^>]+)>/)
+  const innerValue = bracketMatch?.[1] ?? trimmed
+  const withoutProtocol = innerValue.replace(/^(sip|sips|h323|teams|msteams|mailto):/i, '')
+  const normalized = withoutProtocol.split(';')[0].trim().replace(/^['"]|['"]$/g, '')
+
+  return normalized || null
+}
+
+function participantDurationSeconds(participant: Pick<AnalyticsParticipant, 'duration' | 'joinTime' | 'leaveTime'>): number {
+  if (typeof participant.duration === 'number' && participant.duration > 0) return participant.duration
+  if (!participant.leaveTime) return 0
+
+  const derived = (participant.leaveTime.getTime() - participant.joinTime.getTime()) / 1000
+  return derived > 0 ? derived : 0
+}
+
+function buildDurationDistribution(conferences: { startTime: Date; endTime: Date | null }[]): BreakdownItem[] {
+  const buckets: Record<string, number> = {
+    '<5m': 0,
+    '5-15m': 0,
+    '15-30m': 0,
+    '30-60m': 0,
+    '1-2h': 0,
+    '2-4h': 0,
+    '>4h': 0,
+  }
+
+  for (const conference of conferences) {
+    if (!conference.endTime) continue
+    const durationMinutes = (conference.endTime.getTime() - conference.startTime.getTime()) / 60000
+    if (durationMinutes < 0) continue
+    if (durationMinutes < 5) buckets['<5m']++
+    else if (durationMinutes < 15) buckets['5-15m']++
+    else if (durationMinutes < 30) buckets['15-30m']++
+    else if (durationMinutes < 60) buckets['30-60m']++
+    else if (durationMinutes < 120) buckets['1-2h']++
+    else if (durationMinutes < 240) buckets['2-4h']++
+    else buckets['>4h']++
+  }
+
+  return Object.entries(buckets).map(([name, value]) => ({ name, value }))
+}
+
+function buildConferenceActivity(conferences: { startTime: Date }[], windowStart: Date) {
+  const dayMap: Record<string, number> = {}
+
+  for (let index = 0; index < WINDOW_DAYS; index++) {
+    const day = addDays(windowStart, index)
+    dayMap[format(day, 'yyyy-MM-dd')] = 0
+  }
+
+  for (const conference of conferences) {
+    const dayKey = format(conference.startTime, 'yyyy-MM-dd')
+    if (dayKey in dayMap) dayMap[dayKey]++
+  }
+
+  return Object.entries(dayMap).map(([date, count]) => ({ date, count }))
+}
+
+function buildTopVmrs(conferences: { vmr: { name: string } }[]): BreakdownItem[] {
+  const counts: Record<string, number> = {}
+
+  for (const conference of conferences) {
+    counts[conference.vmr.name] = (counts[conference.vmr.name] ?? 0) + 1
+  }
+
+  return Object.entries(counts)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10)
+}
+
+function averageDurationSeconds(conferences: { startTime: Date; endTime: Date | null }[]): number {
+  const completed = conferences
+    .filter((conference) => conference.endTime)
+    .map((conference) => (conference.endTime!.getTime() - conference.startTime.getTime()) / 1000)
+    .filter((duration) => duration > 0)
+
+  if (completed.length === 0) return 0
+
+  const total = completed.reduce((sum, duration) => sum + duration, 0)
+  return Math.round(total / completed.length)
+}
+
+function buildInsights({
+  busiestDay,
+  peakParticipants,
+  encryptedShare,
+  topProtocol,
+  topVendor,
+  averageParticipantsPerConference,
+}: {
+  busiestDay: PeakConcurrencyPoint | null
+  peakParticipants: number
+  encryptedShare: number | null
+  topProtocol: string | null
+  topVendor: string | null
+  averageParticipantsPerConference: number
+}) {
+  const insights: { title: string; value: string; description: string }[] = []
+
+  if (peakParticipants > 0) {
+    insights.push({
+      title: 'Capacity planning',
+      value: `Peak ${peakParticipants} participants`,
+      description: busiestDay
+        ? `The busiest day reached ${busiestDay.peakParticipants} concurrent participants on ${format(new Date(busiestDay.date), 'MMM d')}. Keep headroom above that peak when sizing ports and node capacity.`
+        : 'Use the peak concurrent participant value as the baseline for capacity planning, then leave buffer for unexpected spikes.',
+    })
+  }
+
+  if (topProtocol || topVendor) {
+    const value = [topProtocol, topVendor].filter(Boolean).join(' • ') || 'Mixed endpoint estate'
+    insights.push({
+      title: 'Endpoint focus',
+      value,
+      description: `The last 30 days are dominated by ${topProtocol ?? 'mixed protocols'}${topVendor ? ` and ${topVendor} endpoints` : ''}. Prioritize testing and troubleshooting around that client mix.`,
+    })
+  }
+
+  if (encryptedShare !== null) {
+    insights.push(
+      encryptedShare === 100
+        ? {
+            title: 'Encryption posture',
+            value: '100% encrypted',
+            description: 'All participant legs with a reported encryption state were encrypted. Keep interop policies aligned so that new gateway paths do not lower that baseline.',
+          }
+        : {
+            title: 'Encryption posture',
+            value: `${encryptedShare}% encrypted`,
+            description: 'Some participant legs were reported as unencrypted. Review gateway and interop profiles for the unencrypted paths surfaced in the analytics data.',
+          }
+    )
+  }
+
+  if (averageParticipantsPerConference > 0 && insights.length < 4) {
+    insights.push({
+      title: 'Meeting pattern',
+      value: `${averageParticipantsPerConference} participants / conference`,
+      description: 'Use the average conference size together with the peak chart to decide whether capacity planning should optimize for many small meetings or a few larger ones.',
+    })
+  }
+
+  return insights.slice(0, 4)
+}
+
 function calculatePeakConcurrency(
   conferences: { startTime: Date; endTime: Date | null }[],
-  participants: { joinTime: Date; leaveTime: Date | null }[]
-): { date: string; peakConferences: number; peakParticipants: number }[] {
-  const dayMap: Record<string, { peakConf: number; peakPart: number }> = {}
-  for (let i = 0; i < 30; i++) {
-    const d = subDays(new Date(), 29 - i)
-    dayMap[format(d, 'yyyy-MM-dd')] = { peakConf: 0, peakPart: 0 }
+  participants: { joinTime: Date; leaveTime: Date | null }[],
+  windowStart: Date,
+  windowEnd: Date,
+): PeakConcurrencyPoint[] {
+  const dayMap: Record<string, { conferences: TimeInterval[]; participants: TimeInterval[] }> = {}
+
+  for (let index = 0; index < WINDOW_DAYS; index++) {
+    const day = addDays(windowStart, index)
+    dayMap[format(day, 'yyyy-MM-dd')] = { conferences: [], participants: [] }
   }
 
-  // Group events by day and compute peak for each day
-  const confByDay: Record<string, { start: number; end: number }[]> = {}
-  for (const c of conferences) {
-    const day = format(new Date(c.startTime), 'yyyy-MM-dd')
-    if (!(day in dayMap)) continue
-    if (!confByDay[day]) confByDay[day] = []
-    confByDay[day].push({
-      start: new Date(c.startTime).getTime(),
-      end: c.endTime ? new Date(c.endTime).getTime() : Date.now(),
-    })
+  for (const conference of conferences) {
+    addIntervalToDayMap(dayMap, conference.startTime, conference.endTime ?? windowEnd, windowStart, windowEnd, 'conferences')
   }
 
-  const partByDay: Record<string, { start: number; end: number }[]> = {}
-  for (const p of participants) {
-    const day = format(new Date(p.joinTime), 'yyyy-MM-dd')
-    if (!(day in dayMap)) continue
-    if (!partByDay[day]) partByDay[day] = []
-    partByDay[day].push({
-      start: new Date(p.joinTime).getTime(),
-      end: p.leaveTime ? new Date(p.leaveTime).getTime() : Date.now(),
-    })
+  for (const participant of participants) {
+    addIntervalToDayMap(dayMap, participant.joinTime, participant.leaveTime ?? windowEnd, windowStart, windowEnd, 'participants')
   }
 
-  for (const day of Object.keys(dayMap)) {
-    dayMap[day].peakConf = peakFromIntervals(confByDay[day] ?? [])
-    dayMap[day].peakPart = peakFromIntervals(partByDay[day] ?? [])
-  }
-
-  return Object.entries(dayMap).map(([date, { peakConf, peakPart }]) => ({
+  return Object.entries(dayMap).map(([date, value]) => ({
     date,
-    peakConferences: peakConf,
-    peakParticipants: peakPart,
+    peakConferences: peakFromIntervals(value.conferences),
+    peakParticipants: peakFromIntervals(value.participants),
   }))
 }
 
-function peakFromIntervals(intervals: { start: number; end: number }[]): number {
-  if (intervals.length === 0) return 0
-  const events: { time: number; delta: number }[] = []
-  for (const iv of intervals) {
-    events.push({ time: iv.start, delta: 1 })
-    events.push({ time: iv.end, delta: -1 })
+function addIntervalToDayMap(
+  dayMap: Record<string, { conferences: TimeInterval[]; participants: TimeInterval[] }>,
+  rawStart: Date,
+  rawEnd: Date,
+  windowStart: Date,
+  windowEnd: Date,
+  bucket: 'conferences' | 'participants',
+) {
+  const effectiveStart = Math.max(rawStart.getTime(), windowStart.getTime())
+  const effectiveEnd = Math.min(rawEnd.getTime(), windowEnd.getTime())
+
+  if (effectiveEnd <= effectiveStart) return
+
+  let dayStart = startOfDay(new Date(effectiveStart))
+
+  while (dayStart.getTime() < effectiveEnd) {
+    const nextDay = addDays(dayStart, 1)
+    const dayKey = format(dayStart, 'yyyy-MM-dd')
+    const clippedStart = Math.max(effectiveStart, dayStart.getTime())
+    const clippedEnd = Math.min(effectiveEnd, nextDay.getTime())
+
+    if (dayKey in dayMap && clippedEnd > clippedStart) {
+      dayMap[dayKey][bucket].push({ start: clippedStart, end: clippedEnd })
+    }
+
+    dayStart = nextDay
   }
+}
+
+function peakFromIntervals(intervals: TimeInterval[]): number {
+  if (intervals.length === 0) return 0
+
+  const events: { time: number; delta: number }[] = []
+  for (const interval of intervals) {
+    events.push({ time: interval.start, delta: 1 })
+    events.push({ time: interval.end, delta: -1 })
+  }
+
   events.sort((a, b) => a.time - b.time || a.delta - b.delta)
+
   let current = 0
   let peak = 0
-  for (const e of events) {
-    current += e.delta
+  for (const event of events) {
+    current += event.delta
     if (current > peak) peak = current
   }
+
   return peak
+}
+
+function roundToSingleDecimal(value: number): number {
+  return Math.round(value * 10) / 10
 }
