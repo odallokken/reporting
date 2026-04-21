@@ -124,7 +124,7 @@ export default function ScheduledVMRsPage() {
           <p className="text-gray-500 dark:text-gray-400 mt-1">
             {missingCredentials
               ? 'Configure credentials in Settings to view scheduled conferences'
-              : `${total} scheduled conferences from Pexip Secure Scheduler`}
+              : `${total} scheduled conferences from Pexip Infinity Scheduler`}
           </p>
         </div>
       </div>
