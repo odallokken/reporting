@@ -32,11 +32,12 @@ export interface ParticipantRecord {
 }
 
 export interface DashboardStats {
+  windowDays: number
   activeVmrs: number
   activeConferences: number
   activeParticipants: number
   recentActivity: RecentEvent[]
-  usageByDay: { date: string; count: number }[]
+  peakConcurrency: { date: string; peakParticipants: number }[]
   topVmrs: { name: string; count: number }[]
 }
 

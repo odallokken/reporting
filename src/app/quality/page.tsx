@@ -21,12 +21,15 @@ interface ProblemCall {
 }
 
 interface QualityData {
+  windowDays: number
   qualityDistribution: Record<string, number>
   qualityTrends: { date: string; avgQuality: number | null; sampleCount: number }[]
   problemCalls: ProblemCall[]
   packetLossBuckets: { good: number; warning: number; bad: number }
   totalParticipants: number
 }
+
+const WINDOW_OPTIONS = [30, 90, 180, 365]
 
 function packetLossColor(loss: number | null): string {
   if (loss === null) return 'text-gray-400 dark:text-gray-500'
@@ -57,9 +60,13 @@ export default function QualityPage() {
   const [data, setData] = useState<QualityData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [windowDays, setWindowDays] = useState(30)
 
   useEffect(() => {
-    fetch('/api/quality')
+    setLoading(true)
+    setError(null)
+
+    fetch(`/api/quality?days=${windowDays}`)
       .then((r) => {
         if (!r.ok) throw new Error('Failed to fetch quality data')
         return r.json()
@@ -67,7 +74,7 @@ export default function QualityPage() {
       .then(setData)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [windowDays])
 
   if (loading) {
     return (
@@ -100,8 +107,27 @@ export default function QualityPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Call Quality</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Call quality metrics and problem call analysis (last 30 days)</p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Call Quality</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">Call quality metrics and problem call analysis for the last {data.windowDays} days.</p>
+          </div>
+          <div>
+            <label htmlFor="quality-window-days" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time span</label>
+            <select
+              id="quality-window-days"
+              value={windowDays}
+              onChange={(event) => setWindowDays(Number.parseInt(event.target.value, 10))}
+              className="px-3 py-2 border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-card/60 rounded-xl text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              {WINDOW_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  Last {option} days
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -109,10 +135,10 @@ export default function QualityPage() {
         <div className="glass-card rounded-2xl shadow-glass p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Calls Measured</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{data.totalParticipants}</p>
-              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Last 30 days</p>
-            </div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Calls Measured</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{data.totalParticipants}</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Last {data.windowDays} days</p>
+              </div>
             <div className="bg-primary-50 dark:bg-primary-500/10 p-3 rounded-xl">
               <ShieldAlert size={22} className="text-primary-600 dark:text-primary-400" />
             </div>
@@ -169,7 +195,7 @@ export default function QualityPage() {
           <QualityDistributionChart data={qualityDistData} />
         </div>
         <div className="glass-card rounded-2xl shadow-glass p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quality Trend (30 Days)</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quality Trend (Last {data.windowDays} Days)</h2>
           <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">Lower is better — 1 = Good, 4 = Terrible</p>
           <QualityTrendChart data={data.qualityTrends} />
         </div>
@@ -214,7 +240,7 @@ export default function QualityPage() {
       <div className="glass-card rounded-2xl shadow-glass p-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Problem Calls</h2>
         {data.problemCalls.length === 0 ? (
-          <p className="text-gray-500 dark:text-gray-400 text-sm">No problem calls found in the last 30 days</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">No problem calls found in the last {data.windowDays} days</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
