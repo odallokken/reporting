@@ -119,12 +119,12 @@ export default function ScheduledVMRsPage() {
         <div>
           <div className="flex items-center gap-3">
             <Calendar size={24} className="text-primary-600 dark:text-primary-400" />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Scheduled VMR Calls</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Scheduled VMRs</h1>
           </div>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
             {missingCredentials
               ? 'Configure credentials in Settings to view scheduled conferences'
-              : `${total} scheduled conferences via Outlook`}
+              : `${total} scheduled conferences from Pexip Secure Scheduler`}
           </p>
         </div>
       </div>

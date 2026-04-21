@@ -6,7 +6,7 @@ import { formatRelativeTime } from '@/lib/utils'
 import { useCredentials } from '@/lib/credentials'
 import type { StaticVMR } from '@/lib/types'
 
-type SortKey = 'name' | 'lastUsedAt' | 'totalConferences' | 'service_type' | 'tag'
+type SortKey = 'name' | 'lastUsedAt' | 'totalConferences' | 'tag'
 
 export default function StaticVMRsPage() {
   const router = useRouter()
@@ -70,8 +70,6 @@ export default function StaticVMRsPage() {
         }
         case 'totalConferences':
           return dir * (a.totalConferences - b.totalConferences)
-        case 'service_type':
-          return dir * (a.service_type ?? '').localeCompare(b.service_type ?? '')
         case 'tag':
           return dir * (a.tag ?? '').localeCompare(b.tag ?? '')
         default:
@@ -91,7 +89,6 @@ export default function StaticVMRsPage() {
   const columns: { key: SortKey | 'description' | 'allow_guests'; label: string; sortable: boolean }[] = [
     { key: 'name', label: 'Name', sortable: true },
     { key: 'description', label: 'Description', sortable: false },
-    { key: 'service_type', label: 'Service Type', sortable: true },
     { key: 'totalConferences', label: 'Total Calls', sortable: true },
     { key: 'lastUsedAt', label: 'Last Used', sortable: true },
     { key: 'allow_guests', label: 'Guests', sortable: false },
@@ -176,7 +173,6 @@ export default function StaticVMRsPage() {
                     >
                       <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">{vmr.name}</td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{vmr.description || '—'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{vmr.service_type || '—'}</td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{vmr.totalConferences}</td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{formatRelativeTime(vmr.lastUsedAt)}</td>
                       <td className="px-6 py-4">
