@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { subDays, format } from 'date-fns'
 import { getShortConferenceIds } from '@/lib/settings'
+import { fetchStaticVmrNames } from '@/lib/pexip'
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +12,22 @@ export async function GET(request: NextRequest) {
     const excludedIds = await getShortConferenceIds()
     const confFilter = excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}
 
+    // Read Pexip credentials from query params or headers to exclude static VMRs
+    const baseUrl = searchParams.get('baseUrl') ?? ''
+    const username = searchParams.get('username') ?? ''
+    const password = searchParams.get('password') ?? ''
+
+    const staticVmrNames = await fetchStaticVmrNames(baseUrl, username, password)
+
+    const conditions: Record<string, unknown>[] = []
+    if (staticVmrNames.length > 0) {
+      conditions.push({ name: { notIn: staticVmrNames } })
+    }
+    conditions.push({ conferences: { some: { ...(excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}), participants: { some: {} } } } })
+    const where = { AND: conditions }
+
     const vmrs = await prisma.vMR.findMany({
+      where,
       orderBy: { lastUsedAt: 'desc' },
       include: {
         conferences: {

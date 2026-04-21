@@ -244,7 +244,7 @@ export default function RealtimePage() {
               <div className="px-6 py-4 border-b border-gray-200/60 dark:border-gray-700/30 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                  <Link href={`/vmrs/${group.vmr.id}`} className="text-sm font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                  <Link href={`/vmrs/dynamic/${group.vmr.id}`} className="text-sm font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
                     {vmrName}
                   </Link>
                 </div>

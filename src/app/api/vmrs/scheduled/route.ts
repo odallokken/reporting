@@ -6,7 +6,6 @@ interface PexipScheduledConference {
   name: string
   description: string
   creation_time: string
-  duration: number | null
   start_time: string
   end_time: string
   is_active: boolean
@@ -59,11 +58,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid Management Node URL' }, { status: 400 })
     }
 
-    // Fetch scheduled conferences and aliases in parallel
+    // Fetch scheduled conferences, aliases, and linked VMR conferences in parallel
     const confUrl = new URL('/api/admin/configuration/v1/scheduled_conference/', parsedUrl.origin)
     const aliasUrl = new URL('/api/admin/configuration/v1/scheduled_alias/', parsedUrl.origin)
+    const vmrUrl = new URL('/api/admin/configuration/v1/conference/', parsedUrl.origin)
+    vmrUrl.searchParams.set('service_type', 'scheduled')
 
-    const [confResult, aliasResult] = await Promise.all([
+    const [confResult, aliasResult, vmrResult] = await Promise.all([
       fetchAllPexipPages<PexipScheduledConference>(
         confUrl.toString(),
         parsedUrl.origin,
@@ -72,6 +73,12 @@ export async function POST(request: NextRequest) {
       ),
       fetchAllPexipPages<PexipScheduledAlias>(
         aliasUrl.toString(),
+        parsedUrl.origin,
+        username,
+        password
+      ),
+      fetchAllPexipPages<PexipConferenceVMR>(
+        vmrUrl.toString(),
         parsedUrl.origin,
         username,
         password
@@ -93,29 +100,41 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Merge aliases into conferences and apply search filter
+    // Build a map of conference resource_uri -> VMR data (name, aliases, organizer)
+    const vmrMap = new Map<string, PexipConferenceVMR>()
+    if (!vmrResult.error) {
+      for (const vmr of vmrResult.objects) {
+        vmrMap.set(vmr.resource_uri, vmr)
+      }
+    }
+
+    // Merge data from linked conferences and scheduled aliases, then apply search filter
     const conferences = confResult.objects
-      .map(conf => ({
-        id: conf.id,
-        name: conf.name,
-        description: conf.description ?? '',
-        creation_time: conf.creation_time ?? null,
-        duration: conf.duration ?? null,
-        start_time: conf.start_time ?? null,
-        end_time: conf.end_time ?? null,
-        is_active: conf.is_active ?? false,
-        service_type: conf.service_type ?? null,
-        tag: conf.tag ?? null,
-        aliases: aliasMap.get(conf.resource_uri) ?? [],
-        organizer: conf.organizer ?? null,
-      }))
+      .map(conf => {
+        const linkedVmr = conf.conference ? vmrMap.get(conf.conference) : undefined
+        const scheduledAliases = aliasMap.get(conf.resource_uri) ?? []
+        const vmrAliases = linkedVmr?.aliases?.map(a => a.alias) ?? []
+        const aliases = scheduledAliases.length > 0 ? scheduledAliases : vmrAliases
+        return {
+          id: conf.id,
+          name: (conf.name || linkedVmr?.name) ?? '',
+          description: conf.description ?? '',
+          start_time: conf.start_time ?? null,
+          end_time: conf.end_time ?? null,
+          is_active: conf.is_active ?? false,
+          tag: conf.tag ?? null,
+          aliases,
+          organizer: linkedVmr?.primary_owner_email_address ?? null,
+        }
+      })
       .filter(conf => {
         if (!search) return true
         const s = search.toLowerCase()
         return (
-          conf.name.toLowerCase().includes(s) ||
+          (conf.name ?? '').toLowerCase().includes(s) ||
           conf.description.toLowerCase().includes(s) ||
-          conf.aliases.some(a => a.toLowerCase().includes(s))
+          conf.aliases.some(a => a.toLowerCase().includes(s)) ||
+          (conf.organizer ?? '').toLowerCase().includes(s)
         )
       })
 

@@ -3,10 +3,13 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { subDays, format } from 'date-fns'
+import { getShortConferenceIds } from '@/lib/settings'
 
 export async function GET() {
   try {
     const thirtyDaysAgo = subDays(new Date(), 30)
+    const excludedIds = await getShortConferenceIds()
+    const excludeFilter = excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}
 
     // 1. Quality distribution: count participants by callQuality
     const allParticipants = await prisma.participant.findMany({
@@ -14,6 +17,7 @@ export async function GET() {
         leaveTime: { not: null },
         callQuality: { not: null },
         joinTime: { gte: thirtyDaysAgo },
+        conference: excludeFilter,
       },
       select: { callQuality: true },
     })
@@ -66,6 +70,7 @@ export async function GET() {
       where: {
         joinTime: { gte: thirtyDaysAgo },
         leaveTime: { not: null },
+        conference: excludeFilter,
         OR: [
           { callQuality: { contains: 'bad' } },
           { callQuality: { contains: 'terrible' } },
@@ -107,7 +112,10 @@ export async function GET() {
     // 4. Packet loss summary for streams in last 30 days
     const streams = await prisma.mediaStream.findMany({
       where: {
-        participant: { joinTime: { gte: thirtyDaysAgo } },
+        participant: {
+          joinTime: { gte: thirtyDaysAgo },
+          conference: excludeFilter,
+        },
         OR: [
           { rxPacketLoss: { not: null } },
           { txPacketLoss: { not: null } },
