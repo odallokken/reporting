@@ -75,8 +75,15 @@ export async function POST(request: NextRequest) {
       where: { name: { in: vmrNames } },
       select: {
         name: true,
-        _count: { select: { conferences: true } },
+        _count: {
+          select: {
+            conferences: {
+              where: { participants: { some: {} } }
+            }
+          }
+        },
         conferences: {
+          where: { participants: { some: {} } },
           select: { startTime: true },
           orderBy: { startTime: 'desc' },
           take: 1,

@@ -18,7 +18,10 @@ export async function GET(
       where: { id },
       include: {
         conferences: {
-          where: excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {},
+          where: {
+            ...(excludedIds.length > 0 ? { id: { notIn: excludedIds } } : {}),
+            participants: { some: {} },
+          },
           orderBy: { startTime: 'desc' },
           include: {
             _count: { select: { participants: true } },
