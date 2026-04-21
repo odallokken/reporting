@@ -519,7 +519,7 @@ function addIntervalToDayMap(
   rawEnd: Date,
   windowStart: Date,
   windowEnd: Date,
-  bucket: 'conferences' | 'participants',
+  bucket: 'participants',
 ) {
   const effectiveStart = Math.max(rawStart.getTime(), windowStart.getTime())
   const effectiveEnd = Math.min(rawEnd.getTime(), windowEnd.getTime())
