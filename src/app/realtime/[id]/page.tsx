@@ -199,7 +199,7 @@ export default function ParticipantDetailPage() {
 
   // Auto-refresh for live participants
   useEffect(() => {
-    if (!participant || participant.leaveTime) return
+    if (!participant || participant.leaveTime || participant.conference.endTime) return
     const interval = setInterval(() => {
       fetch(`/api/realtime/${params.id}`)
         .then(r => r.ok ? r.json() : null)
@@ -219,7 +219,7 @@ export default function ParticipantDetailPage() {
     </div>
   )
 
-  const isActive = !participant.leaveTime
+  const isActive = !participant.leaveTime && !participant.conference.endTime
 
   return (
     <div className="p-8">
@@ -271,7 +271,7 @@ export default function ParticipantDetailPage() {
                 <span className="font-mono text-lg text-gray-700 dark:text-gray-300">
                   {participant.duration != null
                     ? `${Math.floor(participant.duration / 3600)}h ${Math.floor((participant.duration % 3600) / 60)}m ${Math.floor(participant.duration % 60)}s`
-                    : formatDuration(participant.joinTime, participant.leaveTime)}
+                    : formatDuration(participant.joinTime, participant.leaveTime ?? participant.conference.endTime)}
                 </span>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Total duration</p>
               </>
@@ -279,7 +279,7 @@ export default function ParticipantDetailPage() {
           </div>
           <div className="mt-4 space-y-0">
             <DetailRow label="Joined" value={formatDateTime(participant.joinTime)} icon={Clock} />
-            <DetailRow label="Left" value={participant.leaveTime ? formatDateTime(participant.leaveTime) : 'Still connected'} icon={Clock} />
+            <DetailRow label="Left" value={participant.leaveTime ? formatDateTime(participant.leaveTime) : participant.conference.endTime ? formatDateTime(participant.conference.endTime) : 'Still connected'} icon={Clock} />
             {participant.disconnectReason && (
               <DetailRow label="Disconnect Reason" value={participant.disconnectReason} />
             )}
