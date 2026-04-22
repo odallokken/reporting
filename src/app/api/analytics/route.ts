@@ -131,11 +131,12 @@ export async function GET(request: Request) {
       return best
     }, null)
 
-    const averageParticipantsPerConference = conferencesInWindow.length > 0
-      ? roundToSingleDecimal(participantsInWindow.length / conferencesInWindow.length)
-      : 0
+    const averageParticipantsPerConference = averageDistinctParticipantsPerConference(normalizedParticipantsInWindow)
     const averageConferenceDuration = averageDurationSeconds(conferencesInWindow)
     const largestConference = conferencesInWindow.reduce((max, conference) => Math.max(max, conference._count.participants), 0)
+    const shortConferenceShare = shortConferencePercentage(conferencesInWindow)
+    const topDisconnectReason = disconnectReasons[0] ?? null
+    const totalDisconnects = disconnectReasons.reduce((sum, item) => sum + item.value, 0)
     const encryptedCount = encryptionBreakdown.find((item) => item.name === 'Encrypted')?.value ?? 0
     const unencryptedCount = encryptionBreakdown.find((item) => item.name === 'Unencrypted')?.value ?? 0
     const encryptedShare = encryptedCount + unencryptedCount > 0
@@ -161,6 +162,10 @@ export async function GET(request: Request) {
         topProtocol: protocolBreakdown[0]?.name ?? null,
         topVendor: vendorBreakdown[0]?.name ?? null,
         averageParticipantsPerConference,
+        averageConferenceDuration,
+        shortConferenceShare,
+        topDisconnectReason,
+        totalDisconnects,
         windowDays,
       }),
       conferenceActivity,
@@ -430,6 +435,10 @@ function buildInsights({
   topProtocol,
   topVendor,
   averageParticipantsPerConference,
+  averageConferenceDuration,
+  shortConferenceShare,
+  topDisconnectReason,
+  totalDisconnects,
   windowDays,
 }: {
   busiestDay: PeakConcurrencyPoint | null
@@ -438,6 +447,10 @@ function buildInsights({
   topProtocol: string | null
   topVendor: string | null
   averageParticipantsPerConference: number
+  averageConferenceDuration: number
+  shortConferenceShare: { percentage: number; count: number; total: number }
+  topDisconnectReason: BreakdownItem | null
+  totalDisconnects: number
   windowDays: number
 }) {
   const insights: { title: string; value: string; description: string }[] = []
@@ -477,15 +490,47 @@ function buildInsights({
     )
   }
 
-  if (averageParticipantsPerConference > 0 && insights.length < 4) {
+  if (averageParticipantsPerConference > 0) {
+    const sizeLabel = averageParticipantsPerConference < 1.5
+      ? 'mostly one-on-one or solo joins'
+      : averageParticipantsPerConference < 4
+        ? 'small group meetings'
+        : averageParticipantsPerConference < 10
+          ? 'mid-sized team meetings'
+          : 'large group meetings'
     insights.push({
       title: 'Meeting pattern',
       value: `${averageParticipantsPerConference} participants / conference`,
-      description: 'Use the average conference size together with the peak chart to decide whether capacity planning should optimize for many small meetings or a few larger ones.',
+      description: `Conferences average ${averageParticipantsPerConference} distinct participants — ${sizeLabel}. Combine this with the peak chart to decide whether to optimize capacity for many small meetings or a few larger ones.`,
     })
   }
 
-  return insights.slice(0, 4)
+  if (averageConferenceDuration > 0) {
+    insights.push({
+      title: 'Meeting length',
+      value: `Avg ${formatDurationLabel(averageConferenceDuration)}`,
+      description: `Completed conferences run for an average of ${formatDurationLabel(averageConferenceDuration)}. Use this to size scheduling windows and to spot drift if the average creeps up over time.`,
+    })
+  }
+
+  if (shortConferenceShare.total > 0 && shortConferenceShare.percentage >= 25) {
+    insights.push({
+      title: 'Short meetings',
+      value: `${shortConferenceShare.percentage}% under 5 min`,
+      description: `${shortConferenceShare.count} of ${shortConferenceShare.total} completed conferences ended in under 5 minutes. That often indicates test calls, misdials, or early drops worth investigating in the disconnect reasons.`,
+    })
+  }
+
+  if (topDisconnectReason && totalDisconnects > 0) {
+    const share = Math.round((topDisconnectReason.value / totalDisconnects) * 100)
+    insights.push({
+      title: 'Disconnect signal',
+      value: `${topDisconnectReason.name} (${share}%)`,
+      description: `"${topDisconnectReason.name}" is the most frequent disconnect reason across ${totalDisconnects} reported participant legs. Confirm it matches expected user behavior, and dig into the next reasons in the chart if it points to a recurring fault.`,
+    })
+  }
+
+  return insights.slice(0, 6)
 }
 
 function calculatePeakConcurrency(
@@ -575,6 +620,53 @@ function peakFromIntervals(intervals: TimeInterval[]): number {
 
 function roundToSingleDecimal(value: number): number {
   return Math.round(value * 10) / 10
+}
+
+function averageDistinctParticipantsPerConference(participants: AnalyticsParticipant[]): number {
+  if (participants.length === 0) return 0
+
+  const perConference = new Map<number, Set<string>>()
+  for (const participant of participants) {
+    const primary = getParticipantPrimaryLabel(participant)
+    const key = getParticipantGroupingKey(participant, primary)
+    let bucket = perConference.get(participant.conferenceId)
+    if (!bucket) {
+      bucket = new Set<string>()
+      perConference.set(participant.conferenceId, bucket)
+    }
+    bucket.add(key)
+  }
+
+  if (perConference.size === 0) return 0
+
+  let total = 0
+  for (const bucket of perConference.values()) {
+    total += bucket.size
+  }
+  return roundToSingleDecimal(total / perConference.size)
+}
+
+function shortConferencePercentage(conferences: { startTime: Date; endTime: Date | null }[]): { percentage: number; count: number; total: number } {
+  let total = 0
+  let short = 0
+  for (const conference of conferences) {
+    if (!conference.endTime) continue
+    const durationMinutes = (conference.endTime.getTime() - conference.startTime.getTime()) / 60000
+    if (durationMinutes < 0) continue
+    total++
+    if (durationMinutes < 5) short++
+  }
+  if (total === 0) return { percentage: 0, count: 0, total: 0 }
+  return { percentage: Math.round((short / total) * 100), count: short, total }
+}
+
+function formatDurationLabel(seconds: number): string {
+  if (!seconds || seconds <= 0) return '0m'
+  const hours = Math.floor(seconds / 3600)
+  const mins = Math.round((seconds % 3600) / 60)
+  if (hours > 0 && mins > 0) return `${hours}h ${mins}m`
+  if (hours > 0) return `${hours}h`
+  return `${Math.max(mins, 1)}m`
 }
 
 function getWindowDays(value: string | null): number {
