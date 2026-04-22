@@ -6,18 +6,13 @@ import {
   ArrowLeft,
   ArrowDown,
   ArrowUp,
-  Activity,
   Clock,
   Globe,
   Lock,
-  MicOff,
-  Mic,
   Monitor,
-  MonitorPlay,
   Phone,
   Server,
   Shield,
-  Signal,
   User,
   Volume2,
   Video,
@@ -388,8 +383,6 @@ export default function ParticipantDetailPage() {
 
   const isActive = !participant.leaveTime && !participant.conference.endTime
   const isActiveSession = isActive
-  const totalBandwidth = (participant.rxBandwidth ?? 0) + (participant.txBandwidth ?? 0)
-  const latestQuality = participant.qualityWindows[0] ?? null
   const liveStreamsForRender =
     isActiveSession && liveMediaStreams && liveMediaStreams.length > 0
       ? liveMediaStreams
@@ -445,170 +438,134 @@ export default function ParticipantDetailPage() {
               </div>
             </div>
           </div>
-
-          {/* KPI strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:max-w-xl lg:flex-1">
-            <div className="rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-white/40 dark:bg-white/5 px-4 py-3">
-              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Duration</p>
-              {isActive ? (
-                <LiveDuration joinTime={participant.joinTime} />
-              ) : (
-                <p className="font-mono text-lg text-gray-900 dark:text-gray-100 mt-0.5">{formattedDuration}</p>
-              )}
-            </div>
-            <div className="rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-white/40 dark:bg-white/5 px-4 py-3">
-              <p className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1"><ArrowDown size={11} /> RX</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-0.5">{participant.rxBandwidth != null ? formatInteger(participant.rxBandwidth) : '-'}</p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400">kbps</p>
-            </div>
-            <div className="rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-white/40 dark:bg-white/5 px-4 py-3">
-              <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1"><ArrowUp size={11} /> TX</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-0.5">{participant.txBandwidth != null ? formatInteger(participant.txBandwidth) : '-'}</p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400">kbps</p>
-            </div>
-            <div className="rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-white/40 dark:bg-white/5 px-4 py-3">
-              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1"><Lock size={11} /> Encryption</p>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-1 truncate">{participant.encryption || '—'}</p>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Main grid: bandwidth + quality */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Bandwidth & Media */}
-        <div className="glass-card rounded-2xl shadow-glass p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Bandwidth &amp; Media</h2>
-            <Activity size={16} className="text-gray-400 dark:text-gray-500" />
-          </div>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="bg-blue-50 dark:bg-blue-500/10 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase flex items-center gap-1">
-                  <ArrowDown size={12} /> Receive
-                </span>
-              </div>
-              <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                {participant.rxBandwidth != null ? formatInteger(participant.rxBandwidth) : '-'}
-              </p>
-              <p className="text-xs text-blue-500 dark:text-blue-400">kbps</p>
-            </div>
-            <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase flex items-center gap-1">
-                  <ArrowUp size={12} /> Transmit
-                </span>
-              </div>
-              <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
-                {participant.txBandwidth != null ? formatInteger(participant.txBandwidth) : '-'}
-              </p>
-              <p className="text-xs text-emerald-500 dark:text-emerald-400">kbps</p>
-            </div>
-          </div>
-          {totalBandwidth > 0 && (
-            <div className="rounded-xl bg-gray-50 dark:bg-surface-dark p-3 mb-4">
-              <div className="flex items-center justify-between text-xs mb-1.5">
-                <span className="text-gray-500 dark:text-gray-400">Total bandwidth</span>
-                <span className="font-medium text-gray-700 dark:text-gray-300">{formatInteger(totalBandwidth)} kbps</span>
-              </div>
-              <div className="flex h-2 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
-                <div
-                  className="bg-blue-500"
-                  style={{ width: `${((participant.rxBandwidth ?? 0) / totalBandwidth) * 100}%` }}
-                />
-                <div
-                  className="bg-emerald-500"
-                  style={{ width: `${((participant.txBandwidth ?? 0) / totalBandwidth) * 100}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-[11px] mt-1">
-                <span className="text-blue-600 dark:text-blue-400">RX {Math.round(((participant.rxBandwidth ?? 0) / totalBandwidth) * 100)}%</span>
-                <span className="text-emerald-600 dark:text-emerald-400">TX {Math.round(((participant.txBandwidth ?? 0) / totalBandwidth) * 100)}%</span>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg border border-gray-100 dark:border-gray-700/40 px-3 py-2.5">
-              <p className="text-[10px] uppercase text-gray-400 dark:text-gray-500 tracking-wider mb-1">Muted</p>
-              <span className="inline-flex items-center gap-1.5 text-sm">
-                {participant.isMuted === true && <><MicOff size={14} className="text-red-500" /><span className="text-red-600 dark:text-red-400">Yes</span></>}
-                {participant.isMuted === false && <><Mic size={14} className="text-green-500" /><span className="text-green-600 dark:text-green-400">No</span></>}
-                {participant.isMuted == null && <span className="text-gray-400">—</span>}
-              </span>
-            </div>
-            <div className="rounded-lg border border-gray-100 dark:border-gray-700/40 px-3 py-2.5">
-              <p className="text-[10px] uppercase text-gray-400 dark:text-gray-500 tracking-wider mb-1">Presenting</p>
-              <span className="inline-flex items-center gap-1.5 text-sm">
-                {participant.isPresenting === true && <><MonitorPlay size={14} className="text-blue-500" /><span className="text-blue-600 dark:text-blue-400">Yes</span></>}
-                {participant.isPresenting === false && <><Monitor size={14} className="text-gray-500" /><span className="text-gray-600 dark:text-gray-400">No</span></>}
-                {participant.isPresenting == null && <span className="text-gray-400">—</span>}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Call Quality */}
-        <div className="glass-card rounded-2xl shadow-glass p-6">
-          <div className="flex items-center justify-between mb-4">
+      {/* Call Quality - merged card showing per-stream media data */}
+      <div className="glass-card rounded-2xl shadow-glass p-6">
+        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+          <div>
             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Call Quality</h2>
-            <Signal size={16} className="text-gray-400 dark:text-gray-500" />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Per-stream codec, bitrate, packet-loss and jitter snapshots from the Pexip Management Node.</p>
           </div>
-          {!participant.callQuality && participant.qualityWindows.length === 0 ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500 py-8 text-center">No quality data available yet</p>
-          ) : (
-            <>
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="bg-gray-50 dark:bg-surface-dark rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Audio</p>
-                  <span className={`inline-flex items-center gap-1 text-sm font-medium ${qualityColor(participant.audioQuality)} px-2 py-0.5 rounded-full`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${qualityDot(participant.audioQuality)}`} />
-                    {qualityLabel(participant.audioQuality)}
-                  </span>
-                </div>
-                <div className="bg-gray-50 dark:bg-surface-dark rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Video</p>
-                  <span className={`inline-flex items-center gap-1 text-sm font-medium ${qualityColor(participant.videoQuality)} px-2 py-0.5 rounded-full`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${qualityDot(participant.videoQuality)}`} />
-                    {qualityLabel(participant.videoQuality)}
-                  </span>
-                </div>
-                <div className="bg-gray-50 dark:bg-surface-dark rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Overall</p>
-                  <span className={`inline-flex items-center gap-1 text-sm font-medium ${qualityColor(participant.callQuality)} px-2 py-0.5 rounded-full`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${qualityDot(participant.callQuality)}`} />
-                    {qualityLabel(participant.callQuality)}
-                  </span>
-                </div>
-              </div>
-
-              {latestQuality && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-blue-50 dark:bg-blue-500/10 rounded-lg p-3">
-                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">RX Packet Loss</p>
-                    <p className="text-lg font-bold text-blue-700 dark:text-blue-300">
-                      {packetLossPercent(latestQuality.rxPacketsLost, (latestQuality.rxPacketsLost ?? 0) + (latestQuality.rxPacketsRecv ?? 0))}
-                    </p>
-                    <p className="text-xs text-blue-500 dark:text-blue-400">
-                      {formatInteger(latestQuality.rxPacketsLost ?? 0)} lost / {formatInteger((latestQuality.rxPacketsLost ?? 0) + (latestQuality.rxPacketsRecv ?? 0))} total
-                    </p>
-                  </div>
-                  <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-lg p-3">
-                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">TX Packet Loss</p>
-                    <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
-                      {packetLossPercent(latestQuality.txPacketsLost, (latestQuality.txPacketsLost ?? 0) + (latestQuality.txPacketsSent ?? 0))}
-                    </p>
-                    <p className="text-xs text-emerald-500 dark:text-emerald-400">
-                      {formatInteger(latestQuality.txPacketsLost ?? 0)} lost / {formatInteger((latestQuality.txPacketsLost ?? 0) + (latestQuality.txPacketsSent ?? 0))} total
-                    </p>
-                  </div>
-                </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300">
+              <Clock size={12} />
+              {isActive ? (
+                <LiveDuration joinTime={participant.joinTime} />
+              ) : (
+                <span className="font-mono">{formattedDuration}</span>
               )}
-            </>
+            </span>
+            {isActiveSession && liveSource && (
+            <span
+              data-tick={liveAgeTick}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                liveSource === 'live'
+                  ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  liveSource === 'live' ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'
+                }`}
+              />
+              {liveSource === 'live'
+                ? `Live${ageSeconds !== null ? ` • updated ${ageSeconds}s ago` : ''}`
+                : 'Snapshot'}
+            </span>
           )}
+          </div>
         </div>
 
+        {liveWarning && (
+          <div className="mb-4 p-3 rounded-lg text-xs bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300">
+            {liveWarning}
+          </div>
+        )}
+
+        {liveStreamsForRender.length === 0 ? (
+          <p className="text-sm text-gray-400 dark:text-gray-500 py-8 text-center">
+            No media streams reported yet.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {liveStreamsForRender.map((ms) => {
+              const Icon = streamTypeIcon(ms.streamType)
+              const accent = streamTypeAccent(ms.streamType)
+              return (
+                <div
+                  key={ms.id}
+                  className="relative overflow-hidden rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-white/40 dark:bg-white/5"
+                >
+                  <div className={`absolute top-0 left-0 h-full w-1 ${accent.bar}`} />
+                  <div className="p-4 pl-5">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg ${accent.chip}`}>
+                          <Icon size={16} />
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 capitalize">{ms.streamType}</p>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                            {ms.startTime ? `Started ${formatDateTime(ms.startTime)}` : 'Start time unknown'}
+                          </p>
+                        </div>
+                      </div>
+                      {ms.node && (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400">
+                          <Server size={11} />
+                          {ms.node}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* TX / RX columns */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <DirectionBlock
+                        label="Transmit"
+                        arrow="up"
+                        codec={ms.txCodec}
+                        bitrate={ms.txBitrate}
+                        resolution={ms.txResolution}
+                        fps={ms.txFps}
+                        packets={ms.txPacketsSent}
+                        packetsLabel="sent"
+                        packetsLost={ms.txPacketsLost}
+                        currentLoss={ms.txCurrentPacketLoss}
+                        jitter={ms.txJitter}
+                      />
+                      <DirectionBlock
+                        label="Receive"
+                        arrow="down"
+                        codec={ms.rxCodec}
+                        bitrate={ms.rxBitrate}
+                        resolution={ms.rxResolution}
+                        fps={ms.rxFps}
+                        packets={ms.rxPacketsRecv}
+                        packetsLabel="received"
+                        packetsLost={ms.rxPacketsLost}
+                        currentLoss={ms.rxCurrentPacketLoss}
+                        jitter={ms.rxJitter}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+        {liveStreamsForRender.length > 0 && (
+          <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+            {liveStreamsForRender.length} {liveStreamsForRender.length === 1 ? 'media stream' : 'media streams'}
+          </p>
+        )}
+      </div>
+
+      {/* Connection details + conference info */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Connection Details */}
         <div className="glass-card rounded-2xl shadow-glass p-6">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4">Connection Details</h2>
@@ -670,127 +627,6 @@ export default function ParticipantDetailPage() {
           </div>
         </div>
       </div>
-
-      {/* Media Streams - redesigned */}
-      {(() => {
-        if (liveStreamsForRender.length === 0 && !isActiveSession) return null
-
-        return (
-          <div className="glass-card rounded-2xl shadow-glass p-6">
-            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-              <div>
-                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  Conferencing node media streams
-                </h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Per-stream codec, bitrate, packet-loss and jitter snapshots from the Pexip Management Node.</p>
-              </div>
-              {isActiveSession && liveSource && (
-                <span
-                  data-tick={liveAgeTick}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    liveSource === 'live'
-                      ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                  }`}
-                >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      liveSource === 'live' ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'
-                    }`}
-                  />
-                  {liveSource === 'live'
-                    ? `Live${ageSeconds !== null ? ` • updated ${ageSeconds}s ago` : ''}`
-                    : 'Snapshot'}
-                </span>
-              )}
-            </div>
-
-            {liveWarning && (
-              <div className="mb-4 p-3 rounded-lg text-xs bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300">
-                {liveWarning}
-              </div>
-            )}
-
-            {liveStreamsForRender.length === 0 ? (
-              <p className="text-sm text-gray-400 dark:text-gray-500 py-8 text-center">
-                No media streams reported yet.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {liveStreamsForRender.map((ms) => {
-                  const Icon = streamTypeIcon(ms.streamType)
-                  const accent = streamTypeAccent(ms.streamType)
-                  return (
-                    <div
-                      key={ms.id}
-                      className="relative overflow-hidden rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-white/40 dark:bg-white/5"
-                    >
-                      <div className={`absolute top-0 left-0 h-full w-1 ${accent.bar}`} />
-                      <div className="p-4 pl-5">
-                        {/* Header */}
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg ${accent.chip}`}>
-                              <Icon size={16} />
-                            </span>
-                            <div>
-                              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 capitalize">{ms.streamType}</p>
-                              <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                                {ms.startTime ? `Started ${formatDateTime(ms.startTime)}` : 'Start time unknown'}
-                              </p>
-                            </div>
-                          </div>
-                          {ms.node && (
-                            <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400">
-                              <Server size={11} />
-                              {ms.node}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* TX / RX columns */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <DirectionBlock
-                            label="Transmit"
-                            arrow="up"
-                            codec={ms.txCodec}
-                            bitrate={ms.txBitrate}
-                            resolution={ms.txResolution}
-                            fps={ms.txFps}
-                            packets={ms.txPacketsSent}
-                            packetsLabel="sent"
-                            packetsLost={ms.txPacketsLost}
-                            currentLoss={ms.txCurrentPacketLoss}
-                            jitter={ms.txJitter}
-                          />
-                          <DirectionBlock
-                            label="Receive"
-                            arrow="down"
-                            codec={ms.rxCodec}
-                            bitrate={ms.rxBitrate}
-                            resolution={ms.rxResolution}
-                            fps={ms.rxFps}
-                            packets={ms.rxPacketsRecv}
-                            packetsLabel="received"
-                            packetsLost={ms.rxPacketsLost}
-                            currentLoss={ms.rxCurrentPacketLoss}
-                            jitter={ms.rxJitter}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-            {liveStreamsForRender.length > 0 && (
-              <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                {liveStreamsForRender.length} {liveStreamsForRender.length === 1 ? 'media stream' : 'media streams'}
-              </p>
-            )}
-          </div>
-        )
-      })()}
 
       {/* Quality History */}
       {participant.qualityWindows.length > 0 && (
