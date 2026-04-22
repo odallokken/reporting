@@ -6,7 +6,7 @@ import { formatRelativeTime } from '@/lib/utils'
 import { useCredentials } from '@/lib/credentials'
 import type { StaticVMR } from '@/lib/types'
 
-type SortKey = 'name' | 'lastUsedAt' | 'totalConferences' | 'tag'
+type SortKey = 'name' | 'lastUsedAt' | 'totalConferences'
 
 export default function StaticVMRsPage() {
   const router = useRouter()
@@ -70,8 +70,6 @@ export default function StaticVMRsPage() {
         }
         case 'totalConferences':
           return dir * (a.totalConferences - b.totalConferences)
-        case 'tag':
-          return dir * (a.tag ?? '').localeCompare(b.tag ?? '')
         default:
           return 0
       }
@@ -86,13 +84,11 @@ export default function StaticVMRsPage() {
 
   const missingCredentials = loaded && (!baseUrl || !username || !password)
 
-  const columns: { key: SortKey | 'description' | 'allow_guests'; label: string; sortable: boolean }[] = [
+  const columns: { key: SortKey | 'description'; label: string; sortable: boolean }[] = [
     { key: 'name', label: 'Name', sortable: true },
     { key: 'description', label: 'Description', sortable: false },
     { key: 'totalConferences', label: 'Total Calls', sortable: true },
     { key: 'lastUsedAt', label: 'Last Used', sortable: true },
-    { key: 'allow_guests', label: 'Guests', sortable: false },
-    { key: 'tag', label: 'Tag', sortable: true },
   ]
 
   return (
@@ -175,12 +171,6 @@ export default function StaticVMRsPage() {
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{vmr.description || '—'}</td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{vmr.totalConferences}</td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{formatRelativeTime(vmr.lastUsedAt)}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${vmr.allow_guests ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400'}`}>
-                          {vmr.allow_guests ? 'Allowed' : 'Disabled'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{vmr.tag || '—'}</td>
                     </tr>
                   ))
                 )}

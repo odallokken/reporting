@@ -60,6 +60,7 @@ export default function StaticVMRDetailPage() {
   if (!vmr) return <div className="p-8 text-gray-500 dark:text-gray-400">VMR not found</div>
 
   const freqData = buildFrequencyData(vmr.conferences)
+  const isStale = !vmr.lastUsedAt || new Date(vmr.lastUsedAt) < subDays(new Date(), 30)
 
   return (
     <div className="p-8">
@@ -67,7 +68,12 @@ export default function StaticVMRDetailPage() {
         <Link href="/vmrs/static" className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4 transition-colors">
           <ArrowLeft size={16} /> Back to Static VMRs
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{vmr.name}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{vmr.name}</h1>
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isStale ? 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-800 dark:text-yellow-400' : 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400'}`}>
+            {isStale ? 'Stale' : 'Active'}
+          </span>
+        </div>
         <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Last used: {formatRelativeTime(vmr.lastUsedAt)}</p>
       </div>
 
