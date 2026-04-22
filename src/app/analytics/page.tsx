@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ActivityLineChart } from '@/components/charts/ActivityLineChart'
 import { GenericBarChart } from '@/components/charts/GenericBarChart'
 import { GenericPieChart } from '@/components/charts/GenericPieChart'
@@ -73,6 +73,35 @@ const SUMMARY_SKELETON_CLASS = 'glass-card rounded-2xl shadow-glass p-6 h-32 ani
 const CHART_SKELETON_CLASS = 'glass-card rounded-2xl shadow-glass p-6 h-[380px] animate-pulse'
 const WINDOW_OPTIONS = [30, 90, 180, 365]
 
+type TopParticipantSortField = 'totalDuration' | 'sessionCount' | 'conferenceCount'
+
+function SortableHeader({
+  label,
+  field,
+  current,
+  onSelect,
+}: {
+  label: string
+  field: TopParticipantSortField
+  current: TopParticipantSortField
+  onSelect: (field: TopParticipantSortField) => void
+}) {
+  const isActive = current === field
+  return (
+    <th className="text-left py-3 px-3 font-medium text-gray-500 dark:text-gray-400">
+      <button
+        type="button"
+        onClick={() => onSelect(field)}
+        className={`inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-gray-100 transition-colors ${isActive ? 'text-gray-900 dark:text-gray-100' : ''}`}
+        aria-pressed={isActive}
+      >
+        {label}
+        {isActive && <span aria-hidden="true">↓</span>}
+      </button>
+    </th>
+  )
+}
+
 function MetricCard({
   title,
   value,
@@ -115,6 +144,20 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [windowDays, setWindowDays] = useState(30)
+  const [topParticipantSort, setTopParticipantSort] = useState<TopParticipantSortField>('totalDuration')
+
+  const sortedTopParticipants = useMemo(() => {
+    if (!data) return []
+    return [...data.topParticipants]
+      .sort((a, b) => {
+        const primary = b[topParticipantSort] - a[topParticipantSort]
+        if (primary !== 0) return primary
+        if (b.totalDuration !== a.totalDuration) return b.totalDuration - a.totalDuration
+        if (b.sessionCount !== a.sessionCount) return b.sessionCount - a.sessionCount
+        return b.conferenceCount - a.conferenceCount
+      })
+      .slice(0, 15)
+  }, [data, topParticipantSort])
 
   useEffect(() => {
     setLoading(true)
@@ -268,8 +311,29 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="glass-card rounded-2xl shadow-glass p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Top Participants</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Ranked by distinct conferences attended, then by total connected time.</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Top Participants</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {topParticipantSort === 'totalDuration' && `Ranked by total connected time over the last ${data.windowDays} days.`}
+                {topParticipantSort === 'sessionCount' && `Ranked by number of participant sessions over the last ${data.windowDays} days.`}
+                {topParticipantSort === 'conferenceCount' && `Ranked by distinct conferences attended over the last ${data.windowDays} days.`}
+              </p>
+            </div>
+            <div>
+              <label htmlFor="top-participants-sort" className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Sort by</label>
+              <select
+                id="top-participants-sort"
+                value={topParticipantSort}
+                onChange={(event) => setTopParticipantSort(event.target.value as TopParticipantSortField)}
+                className="px-3 py-2 border border-gray-200/60 dark:border-gray-700/40 bg-white/60 dark:bg-surface-dark-card/60 rounded-xl text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="totalDuration">Total duration</option>
+                <option value="sessionCount">Sessions</option>
+                <option value="conferenceCount">Conferences</option>
+              </select>
+            </div>
+          </div>
           {data.topParticipants.length === 0 ? (
             <p className="text-gray-500 dark:text-gray-400 text-sm">No participant data available</p>
           ) : (
@@ -279,14 +343,14 @@ export default function AnalyticsPage() {
                   <tr className="border-b border-gray-200 dark:border-gray-700">
                     <th className="text-left py-3 px-3 font-medium text-gray-500 dark:text-gray-400">#</th>
                     <th className="text-left py-3 px-3 font-medium text-gray-500 dark:text-gray-400">Participant</th>
-                    <th className="text-left py-3 px-3 font-medium text-gray-500 dark:text-gray-400">Conferences</th>
-                    <th className="text-left py-3 px-3 font-medium text-gray-500 dark:text-gray-400">Sessions</th>
-                    <th className="text-left py-3 px-3 font-medium text-gray-500 dark:text-gray-400">Total Time</th>
+                    <SortableHeader label="Conferences" field="conferenceCount" current={topParticipantSort} onSelect={setTopParticipantSort} />
+                    <SortableHeader label="Sessions" field="sessionCount" current={topParticipantSort} onSelect={setTopParticipantSort} />
+                    <SortableHeader label="Total Time" field="totalDuration" current={topParticipantSort} onSelect={setTopParticipantSort} />
                     <th className="text-left py-3 px-3 font-medium text-gray-500 dark:text-gray-400">Avg Session</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.topParticipants.map((participant, index) => (
+                  {sortedTopParticipants.map((participant, index) => (
                     <tr key={`${participant.name}-${index}`} className="border-b border-gray-100 dark:border-gray-700/30 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                       <td className="py-3 px-3 text-gray-400 dark:text-gray-500">{index + 1}</td>
                       <td className="py-3 px-3">
@@ -295,9 +359,9 @@ export default function AnalyticsPage() {
                           <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{participant.secondaryLabel}</p>
                         )}
                       </td>
-                      <td className="py-3 px-3 text-gray-700 dark:text-gray-300">{participant.conferenceCount}</td>
-                      <td className="py-3 px-3 text-gray-700 dark:text-gray-300">{participant.sessionCount}</td>
-                      <td className="py-3 px-3 text-gray-600 dark:text-gray-400">{formatSeconds(participant.totalDuration)}</td>
+                      <td className={`py-3 px-3 ${topParticipantSort === 'conferenceCount' ? 'text-gray-900 dark:text-gray-100 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>{participant.conferenceCount}</td>
+                      <td className={`py-3 px-3 ${topParticipantSort === 'sessionCount' ? 'text-gray-900 dark:text-gray-100 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>{participant.sessionCount}</td>
+                      <td className={`py-3 px-3 ${topParticipantSort === 'totalDuration' ? 'text-gray-900 dark:text-gray-100 font-semibold' : 'text-gray-600 dark:text-gray-400'}`}>{formatSeconds(participant.totalDuration)}</td>
                       <td className="py-3 px-3 text-gray-600 dark:text-gray-400">{formatSeconds(participant.averageDuration)}</td>
                     </tr>
                   ))}

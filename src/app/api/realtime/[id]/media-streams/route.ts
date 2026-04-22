@@ -7,13 +7,20 @@ const THROTTLE_WINDOW_MS = 2000
 
 interface PexipParticipantStatus {
   resource_uri: string
+  id?: string
   call_uuid?: string
   conference?: string
 }
 
+// Field names follow the Pexip Management Node status API:
+// https://docs.pexip.com/api_manage/api_status.htm#get_media_stats
+// Note: the resource is `participant_media_stream` internally but is exposed
+// only via `/api/admin/status/v1/participant/<id>/media_stream/`. Field names
+// use `type` (not `stream_type`), `id` (not `stream_id`) and the
+// "current" packet-loss values are reported as `*_windowed_packet_loss`.
 interface PexipMediaStreamStatus {
-  stream_id?: string | number | null
-  stream_type: string
+  id?: string | number | null
+  type: string
   node?: string | null
   start_time?: number | string | null
   end_time?: number | string | null
@@ -21,7 +28,7 @@ interface PexipMediaStreamStatus {
   rx_codec?: string | null
   rx_fps?: number | null
   rx_packet_loss?: number | null
-  rx_current_packet_loss?: number | null
+  rx_windowed_packet_loss?: number | null
   rx_jitter?: number | null
   rx_packets_lost?: number | null
   rx_packets_received?: number | null
@@ -30,7 +37,7 @@ interface PexipMediaStreamStatus {
   tx_codec?: string | null
   tx_fps?: number | null
   tx_packet_loss?: number | null
-  tx_current_packet_loss?: number | null
+  tx_windowed_packet_loss?: number | null
   tx_jitter?: number | null
   tx_packets_lost?: number | null
   tx_packets_sent?: number | null
@@ -93,14 +100,24 @@ function fetchWithTimeout(url: string, username: string, password: string): Prom
 
 function parsePexipTime(value: number | string | null | undefined): Date | null {
   if (value === null || value === undefined) return null
-  const numeric = typeof value === 'number' ? value : Number(value)
-  if (Number.isFinite(numeric)) {
-    // Pexip uses Unix seconds.
-    return new Date(numeric * 1000)
-  }
   if (typeof value === 'string') {
-    const parsed = new Date(value)
+    const trimmed = value.trim()
+    if (!trimmed) return null
+    // Pexip status API for media streams returns ISO timestamps (in UTC,
+    // without a "Z" suffix). Try ISO parsing first.
+    const isoCandidate = /T/.test(trimmed) && !/[Zz]|[+-]\d\d:?\d\d$/.test(trimmed)
+      ? `${trimmed}Z`
+      : trimmed
+    const parsed = new Date(isoCandidate)
     if (!Number.isNaN(parsed.getTime())) return parsed
+    // Fall through and try numeric parsing for legacy callers.
+    const numeric = Number(trimmed)
+    if (Number.isFinite(numeric) && numeric > 0) return new Date(numeric * 1000)
+    return null
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    // Legacy: some endpoints return Unix seconds.
+    return new Date(value * 1000)
   }
   return null
 }
@@ -299,13 +316,15 @@ export async function POST(
         )
       }
 
-      // 2. Pull the per-stream media data for that participant.
-      const mediaStreamUrl = new URL(
-        '/api/admin/status/v1/participant_media_stream/',
-        parsedUrl.origin,
-      )
-      mediaStreamUrl.searchParams.set('participant', liveParticipant.resource_uri)
-      mediaStreamUrl.searchParams.set('limit', '50')
+      // 2. Pull the per-stream media data from the participant's own
+      // media_stream sub-resource. The status API only exposes media stream
+      // statistics through this nested path; there is no top-level
+      // `participant_media_stream` collection (querying it would 404).
+      // Reference: https://docs.pexip.com/api_manage/api_status.htm#get_media_stats
+      const participantPath = liveParticipant.resource_uri.endsWith('/')
+        ? liveParticipant.resource_uri
+        : `${liveParticipant.resource_uri}/`
+      const mediaStreamUrl = new URL(`${participantPath}media_stream/`, parsedUrl.origin)
 
       const mediaRes = await fetchWithTimeout(
         mediaStreamUrl.toString(),
@@ -328,16 +347,16 @@ export async function POST(
 
       // 3. Upsert each live stream into the DB on the unique key.
       for (const stream of liveStreams) {
-        const streamId = stream.stream_id != null ? String(stream.stream_id) : null
+        const streamId = stream.id != null ? String(stream.id) : null
         const data = {
           participantId,
           streamId,
-          streamType: stream.stream_type,
+          streamType: stream.type,
           rxBitrate: stream.rx_bitrate ?? null,
           rxCodec: stream.rx_codec ?? null,
           rxFps: stream.rx_fps ?? null,
           rxPacketLoss: stream.rx_packet_loss ?? null,
-          rxCurrentPacketLoss: stream.rx_current_packet_loss ?? null,
+          rxCurrentPacketLoss: stream.rx_windowed_packet_loss ?? null,
           rxJitter: stream.rx_jitter ?? null,
           rxPacketsLost: stream.rx_packets_lost ?? null,
           rxPacketsRecv: stream.rx_packets_received ?? null,
@@ -346,7 +365,7 @@ export async function POST(
           txCodec: stream.tx_codec ?? null,
           txFps: stream.tx_fps ?? null,
           txPacketLoss: stream.tx_packet_loss ?? null,
-          txCurrentPacketLoss: stream.tx_current_packet_loss ?? null,
+          txCurrentPacketLoss: stream.tx_windowed_packet_loss ?? null,
           txJitter: stream.tx_jitter ?? null,
           txPacketsLost: stream.tx_packets_lost ?? null,
           txPacketsSent: stream.tx_packets_sent ?? null,
@@ -362,7 +381,7 @@ export async function POST(
               participant_stream_unique: {
                 participantId,
                 streamId,
-                streamType: stream.stream_type,
+                streamType: stream.type,
               },
             },
             create: data,
