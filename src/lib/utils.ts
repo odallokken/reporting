@@ -1,4 +1,4 @@
-import { formatDistanceToNow, format } from 'date-fns'
+import { formatDistanceToNow, format, subDays, subYears } from 'date-fns'
 
 export function formatRelativeTime(date: Date | string | null): string {
   if (!date) return 'Never'
@@ -24,4 +24,19 @@ export function formatDuration(startTime: Date | string, endTime: Date | string 
 
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(' ')
+}
+
+export function getStaticVmrStatus(lastUsedAt: string | null): { label: string; className: string; rank: number } {
+  if (!lastUsedAt) {
+    return { label: 'Inactive', className: 'bg-red-100 dark:bg-red-500/10 text-red-800 dark:text-red-400', rank: 2 }
+  }
+  const lastUsed = new Date(lastUsedAt)
+  const now = new Date()
+  if (lastUsed >= subDays(now, 30)) {
+    return { label: 'Active', className: 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400', rank: 0 }
+  }
+  if (lastUsed >= subYears(now, 1)) {
+    return { label: 'Stale', className: 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-800 dark:text-yellow-400', rank: 1 }
+  }
+  return { label: 'Inactive', className: 'bg-red-100 dark:bg-red-500/10 text-red-800 dark:text-red-400', rank: 2 }
 }

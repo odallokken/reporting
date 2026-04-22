@@ -97,12 +97,11 @@ export default function DynamicVMRsPage() {
                   { key: 'lastUsedAt', label: 'Last Used' },
                   { key: 'totalCalls', label: 'Total Calls' },
                   { key: 'totalParticipants', label: 'Participants' },
-                  { key: 'status', label: 'Status' },
                 ].map(col => (
                   <th
                     key={col.key}
-                    onClick={() => col.key !== 'status' && handleSort(col.key)}
-                    className={`px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${col.key !== 'status' ? 'cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 select-none' : ''}`}
+                    onClick={() => handleSort(col.key)}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 select-none"
                   >
                     <span className="flex items-center gap-1">
                       {col.label}
@@ -114,25 +113,20 @@ export default function DynamicVMRsPage() {
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/30">
               {loading ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Loading...</td></tr>
+                <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Loading...</td></tr>
               ) : vmrs.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">No VMRs found</td></tr>
+                <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">No VMRs found</td></tr>
               ) : (
                 vmrs.map(vmr => (
                   <tr
                     key={vmr.id}
                     onClick={() => router.push(`/vmrs/dynamic/${vmr.id}`)}
-                    className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${vmr.isStale ? 'bg-yellow-50 dark:bg-yellow-500/5' : ''}`}
+                    className="cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                   >
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">{vmr.name}</td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{formatRelativeTime(vmr.lastUsedAt)}</td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{vmr.totalCalls}</td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{vmr.totalParticipants}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${vmr.isStale ? 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-800 dark:text-yellow-400' : 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400'}`}>
-                        {vmr.isStale ? 'Stale' : 'Active'}
-                      </span>
-                    </td>
                   </tr>
                 ))
               )}

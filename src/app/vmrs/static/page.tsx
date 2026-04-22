@@ -2,11 +2,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react'
-import { formatRelativeTime } from '@/lib/utils'
+import { formatRelativeTime, getStaticVmrStatus } from '@/lib/utils'
 import { useCredentials } from '@/lib/credentials'
 import type { StaticVMR } from '@/lib/types'
 
-type SortKey = 'name' | 'lastUsedAt' | 'totalConferences'
+type SortKey = 'name' | 'lastUsedAt' | 'totalConferences' | 'status'
 
 export default function StaticVMRsPage() {
   const router = useRouter()
@@ -53,7 +53,7 @@ export default function StaticVMRsPage() {
 
   const handleSort = (col: SortKey) => {
     if (sortBy === col) setSortOrder(o => o === 'asc' ? 'desc' : 'asc')
-    else { setSortBy(col); setSortOrder(col === 'totalConferences' || col === 'lastUsedAt' ? 'desc' : 'asc') }
+    else { setSortBy(col); setSortOrder(col === 'totalConferences' || col === 'lastUsedAt' || col === 'status' ? 'desc' : 'asc') }
   }
 
   const sortedVmrs = useMemo(() => {
@@ -70,6 +70,11 @@ export default function StaticVMRsPage() {
         }
         case 'totalConferences':
           return dir * (a.totalConferences - b.totalConferences)
+        case 'status': {
+          const rankA = getStaticVmrStatus(a.lastUsedAt).rank
+          const rankB = getStaticVmrStatus(b.lastUsedAt).rank
+          return dir * (rankA - rankB)
+        }
         default:
           return 0
       }
@@ -89,6 +94,7 @@ export default function StaticVMRsPage() {
     { key: 'description', label: 'Description', sortable: false },
     { key: 'totalConferences', label: 'Total Calls', sortable: true },
     { key: 'lastUsedAt', label: 'Last Used', sortable: true },
+    { key: 'status', label: 'Status', sortable: true },
   ]
 
   return (
@@ -171,6 +177,16 @@ export default function StaticVMRsPage() {
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{vmr.description || '—'}</td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{vmr.totalConferences}</td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{formatRelativeTime(vmr.lastUsedAt)}</td>
+                      <td className="px-6 py-4">
+                        {(() => {
+                          const status = getStaticVmrStatus(vmr.lastUsedAt)
+                          return (
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${status.className}`}>
+                              {status.label}
+                            </span>
+                          )
+                        })()}
+                      </td>
                     </tr>
                   ))
                 )}
