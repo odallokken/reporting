@@ -637,8 +637,6 @@ function averageDistinctParticipantsPerConference(participants: AnalyticsPartici
     bucket.add(key)
   }
 
-  if (perConference.size === 0) return 0
-
   let total = 0
   for (const bucket of perConference.values()) {
     total += bucket.size
