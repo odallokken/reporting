@@ -119,7 +119,7 @@ export async function GET(request: Request) {
 
     const encryptionBreakdown = buildEncryptionBreakdown(normalizedParticipantsInWindow)
     const topParticipants = buildTopParticipants(normalizedParticipantsInWindow, now)
-    const peakConcurrency = calculatePeakConcurrency(normalizedParticipantIntervals, windowStart, windowEnd, windowDays)
+    const peakConcurrency = calculatePeakConcurrency(normalizedParticipantIntervals, windowStart, windowEnd, windowDays, now)
     const durationDistribution = buildDurationDistribution(conferencesInWindow)
     const conferenceActivity = buildConferenceActivity(conferencesInWindow, windowStart, windowDays)
     const topVmrs = buildTopVmrs(conferencesInWindow)
@@ -273,12 +273,15 @@ function buildTopParticipants(participants: AnalyticsParticipant[], referenceTim
       totalDuration: Math.round(entry.totalDuration),
       averageDuration: entry.sessionCount > 0 ? Math.round(entry.totalDuration / entry.sessionCount) : 0,
     }))
+    // Default ranking is by total connected time. The client may re-sort
+    // (e.g. by session count) — return enough top entries that those
+    // alternative orderings remain stable.
     .sort((a, b) => {
-      if (b.conferenceCount !== a.conferenceCount) return b.conferenceCount - a.conferenceCount
       if (b.totalDuration !== a.totalDuration) return b.totalDuration - a.totalDuration
-      return b.sessionCount - a.sessionCount
+      if (b.sessionCount !== a.sessionCount) return b.sessionCount - a.sessionCount
+      return b.conferenceCount - a.conferenceCount
     })
-    .slice(0, 15)
+    .slice(0, 25)
 }
 
 function getParticipantPrimaryLabel(participant: Pick<AnalyticsParticipant, 'name' | 'identity' | 'sourceAlias' | 'destinationAlias' | 'remoteAddress' | 'callUuid'>): string {
@@ -490,6 +493,7 @@ function calculatePeakConcurrency(
   windowStart: Date,
   windowEnd: Date,
   windowDays: number,
+  now: Date,
 ): PeakConcurrencyPoint[] {
   const dayMap: Record<string, { participants: TimeInterval[] }> = {}
 
@@ -498,11 +502,15 @@ function calculatePeakConcurrency(
     dayMap[format(day, 'yyyy-MM-dd')] = { participants: [] }
   }
 
+  // Cap still-active participants at "now" rather than the end of today so
+  // hours that have not happened yet do not artificially inflate today's peak.
+  const liveCutoff = new Date(Math.min(now.getTime(), windowEnd.getTime()))
+
   for (const participant of participants) {
     addIntervalToDayMap(
       dayMap,
       participant.joinTime,
-      effectiveParticipantEndTime(participant, windowEnd),
+      effectiveParticipantEndTime(participant, liveCutoff),
       windowStart,
       windowEnd,
       'participants',
