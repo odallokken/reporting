@@ -3,12 +3,12 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { useTheme } from './ThemeProvider'
-import { LayoutDashboard, Video, VideoOff, Calendar, Activity, Settings, ScrollText, LogOut, Moon, Sun, ShieldCheck, BarChart3, Search } from 'lucide-react'
+import { LayoutDashboard, Video, Zap, Calendar, Activity, Settings, ScrollText, LogOut, Moon, Sun, ShieldCheck, BarChart3, Search } from 'lucide-react'
 
 const links = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/vmrs/static', label: 'Static VMRs', icon: Video },
-  { href: '/vmrs/dynamic', label: 'Dynamic VMRs', icon: VideoOff },
+  { href: '/vmrs/dynamic', label: 'Dynamic VMRs', icon: Zap },
   { href: '/vmrs/scheduled', label: 'Scheduled VMRs', icon: Calendar },
   { href: '/realtime', label: 'Real-time', icon: Activity },
   { href: '/quality', label: 'Quality', icon: ShieldCheck },
@@ -101,7 +101,10 @@ export function TopNavbar() {
           <div className="flex items-center gap-2 pl-2 border-l border-gray-200/60 dark:border-gray-700/40">
             <span className="text-xs font-medium text-gray-600 dark:text-gray-400 hidden md:block">{session?.user?.name}</span>
             <button
-              onClick={() => signOut({ callbackUrl: '/login' })}
+              onClick={async () => {
+                await signOut({ redirect: false })
+                window.location.assign('/login')
+              }}
               className="p-2 rounded-xl text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/5 transition-colors"
               title="Sign out"
             >

@@ -20,13 +20,52 @@ interface StaticVMRDetail {
     endTime: string | null
     callId: string | null
     participantCount: number
+    worstQuality: string | null
     participants: {
       id: number
       name: string | null
       joinTime: string
       leaveTime: string | null
+      callQuality: string | null
     }[]
   }[]
+}
+
+function qualityBadgeClass(quality: string | null | undefined): string {
+  if (!quality) return 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+  if (quality.includes('good')) return 'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400'
+  if (quality.includes('ok')) return 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400'
+  if (quality.includes('bad')) return 'bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400'
+  if (quality.includes('terrible')) return 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400'
+  return 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+}
+
+function qualityDotClass(quality: string | null | undefined): string {
+  if (!quality) return 'bg-gray-300'
+  if (quality.includes('good')) return 'bg-green-500'
+  if (quality.includes('ok')) return 'bg-yellow-500'
+  if (quality.includes('bad')) return 'bg-orange-500'
+  if (quality.includes('terrible')) return 'bg-red-500'
+  return 'bg-gray-400'
+}
+
+function qualityLabel(quality: string | null | undefined): string {
+  if (!quality) return 'N/A'
+  if (quality.includes('good')) return 'Good'
+  if (quality.includes('ok')) return 'OK'
+  if (quality.includes('bad')) return 'Bad'
+  if (quality.includes('terrible')) return 'Terrible'
+  if (quality.includes('unknown')) return 'Unknown'
+  return quality
+}
+
+function QualityBadge({ quality }: { quality: string | null | undefined }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${qualityBadgeClass(quality)}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${qualityDotClass(quality)}`} />
+      {qualityLabel(quality)}
+    </span>
+  )
 }
 
 function buildFrequencyData(conferences: StaticVMRDetail['conferences']) {
@@ -105,7 +144,7 @@ export default function StaticVMRDetailPage() {
                   onClick={() => setExpandedConf(expandedConf === conf.id ? null : conf.id)}
                 >
                   {expandedConf === conf.id ? <ChevronDown size={16} className="text-gray-400 dark:text-gray-500" /> : <ChevronRight size={16} className="text-gray-400 dark:text-gray-500" />}
-                  <div className="flex-1 grid grid-cols-4 gap-4">
+                  <div className="flex-1 grid grid-cols-5 gap-4">
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400">Start</p>
                       <p className="text-sm text-gray-900 dark:text-gray-100">{formatDateTime(conf.startTime)}</p>
@@ -122,6 +161,10 @@ export default function StaticVMRDetailPage() {
                       <p className="text-xs text-gray-500 dark:text-gray-400">Participants</p>
                       <p className="text-sm text-gray-900 dark:text-gray-100">{conf.participantCount}</p>
                     </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Call Quality</p>
+                      <QualityBadge quality={conf.worstQuality} />
+                    </div>
                   </div>
                 </div>
                 {expandedConf === conf.id && (
@@ -133,15 +176,24 @@ export default function StaticVMRDetailPage() {
                           <th className="text-left py-2">Joined</th>
                           <th className="text-left py-2">Left</th>
                           <th className="text-left py-2">Duration</th>
+                          <th className="text-left py-2">Quality</th>
                         </tr>
                       </thead>
                       <tbody>
                         {conf.participants.map(p => (
                           <tr key={p.id} className="border-b border-gray-50 dark:border-gray-700/20">
-                            <td className="py-2 text-gray-900 dark:text-gray-100">{p.name ?? 'Unknown'}</td>
+                            <td className="py-2">
+                              <Link
+                                href={`/realtime/${p.id}`}
+                                className="text-primary-600 dark:text-primary-400 hover:underline font-medium"
+                              >
+                                {p.name ?? 'Unknown'}
+                              </Link>
+                            </td>
                             <td className="py-2 text-gray-600 dark:text-gray-400">{formatDateTime(p.joinTime)}</td>
                             <td className="py-2 text-gray-600 dark:text-gray-400">{p.leaveTime ? formatDateTime(p.leaveTime) : 'Still in call'}</td>
                             <td className="py-2 text-gray-600 dark:text-gray-400">{formatDuration(p.joinTime, p.leaveTime)}</td>
+                            <td className="py-2"><QualityBadge quality={p.callQuality} /></td>
                           </tr>
                         ))}
                       </tbody>

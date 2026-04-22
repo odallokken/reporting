@@ -106,7 +106,10 @@ export function Sidebar() {
             <p className="text-xs text-gray-400 dark:text-gray-500">Signed in</p>
           </div>
           <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
+            onClick={async () => {
+              await signOut({ redirect: false })
+              window.location.assign('/login')
+            }}
             className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5"
             title="Sign out"
           >
