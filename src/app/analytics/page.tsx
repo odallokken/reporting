@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ActivityLineChart } from '@/components/charts/ActivityLineChart'
 import { GenericBarChart } from '@/components/charts/GenericBarChart'
 import { GenericPieChart } from '@/components/charts/GenericPieChart'
@@ -145,6 +145,19 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null)
   const [windowDays, setWindowDays] = useState(30)
   const [topParticipantSort, setTopParticipantSort] = useState<TopParticipantSortField>('totalDuration')
+
+  const sortedTopParticipants = useMemo(() => {
+    if (!data) return []
+    return [...data.topParticipants]
+      .sort((a, b) => {
+        const primary = b[topParticipantSort] - a[topParticipantSort]
+        if (primary !== 0) return primary
+        if (b.totalDuration !== a.totalDuration) return b.totalDuration - a.totalDuration
+        if (b.sessionCount !== a.sessionCount) return b.sessionCount - a.sessionCount
+        return b.conferenceCount - a.conferenceCount
+      })
+      .slice(0, 15)
+  }, [data, topParticipantSort])
 
   useEffect(() => {
     setLoading(true)
@@ -337,17 +350,7 @@ export default function AnalyticsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[...data.topParticipants]
-                    .sort((a, b) => {
-                      const primary = b[topParticipantSort] - a[topParticipantSort]
-                      if (primary !== 0) return primary
-                      // Stable secondary tie-breakers, prioritising the other meaningful columns.
-                      if (b.totalDuration !== a.totalDuration) return b.totalDuration - a.totalDuration
-                      if (b.sessionCount !== a.sessionCount) return b.sessionCount - a.sessionCount
-                      return b.conferenceCount - a.conferenceCount
-                    })
-                    .slice(0, 15)
-                    .map((participant, index) => (
+                  {sortedTopParticipants.map((participant, index) => (
                     <tr key={`${participant.name}-${index}`} className="border-b border-gray-100 dark:border-gray-700/30 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                       <td className="py-3 px-3 text-gray-400 dark:text-gray-500">{index + 1}</td>
                       <td className="py-3 px-3">
