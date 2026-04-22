@@ -70,9 +70,6 @@ export default function DynamicVMRDetailPage() {
         </Link>
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{vmr.name}</h1>
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${vmr.isStale ? 'bg-yellow-100 dark:bg-yellow-500/10 text-yellow-800 dark:text-yellow-400' : 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400'}`}>
-            {vmr.isStale ? 'Stale' : 'Active'}
-          </span>
         </div>
         <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Last used: {formatRelativeTime(vmr.lastUsedAt)}</p>
       </div>
