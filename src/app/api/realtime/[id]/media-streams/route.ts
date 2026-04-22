@@ -282,18 +282,29 @@ export async function POST(
     lastFetchByCallUuid.set(participant.callUuid, now)
 
     try {
-      // 1. Look up the live participant by call UUID to get its resource_uri.
+      // 1. Look up the live participant directly by its UUID. The value we
+      // store as `callUuid` is in fact the participant UUID emitted by Pexip
+      // policy events (`data.uuid`). For WebRTC/Connect calls that UUID also
+      // happens to match the call-leg `call_uuid` field on the Status API,
+      // but for SIP/H.323 gateway calls the participant and call-leg UUIDs
+      // differ, so filtering with `?call_uuid=` returns no results. Fetching
+      // the participant resource by its UUID works for every protocol.
       const participantStatusUrl = new URL(
-        '/api/admin/status/v1/participant/',
+        `/api/admin/status/v1/participant/${encodeURIComponent(participant.callUuid)}/`,
         parsedUrl.origin,
       )
-      participantStatusUrl.searchParams.set('call_uuid', participant.callUuid)
 
       const participantRes = await fetchWithTimeout(
         participantStatusUrl.toString(),
         username,
         password,
       )
+      if (participantRes.status === 404) {
+        const cached = await loadCachedMediaStreams(participantId)
+        return NextResponse.json(
+          buildResponse('cached', cached, 'Participant is no longer active on the Pexip node.'),
+        )
+      }
       if (!participantRes.ok) {
         const cached = await loadCachedMediaStreams(participantId)
         return NextResponse.json(
@@ -305,11 +316,8 @@ export async function POST(
         )
       }
 
-      const participantData = (await participantRes.json()) as {
-        objects?: PexipParticipantStatus[]
-      }
-      const liveParticipant = participantData.objects?.[0]
-      if (!liveParticipant) {
+      const liveParticipant = (await participantRes.json()) as PexipParticipantStatus | null
+      if (!liveParticipant?.resource_uri) {
         const cached = await loadCachedMediaStreams(participantId)
         return NextResponse.json(
           buildResponse('cached', cached, 'Participant is no longer active on the Pexip node.'),
