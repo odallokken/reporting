@@ -466,3 +466,45 @@ Pexip Infinity pushes real-time events to the portal via the **Event Sink** mech
 - **[Recharts](https://recharts.org/)** — Interactive charts and visualisations
 - **[Prisma ORM](https://www.prisma.io/)** — Type-safe database access with SQLite
 - **[Caddy](https://caddyserver.com/)** — Reverse proxy with automatic HTTPS
+- **[@react-pdf/renderer](https://react-pdf.org/)** — Server-side PDF generation for the Executive Report
+
+---
+
+## Executive Report (PDF Export)
+
+The dashboard includes a built-in **Executive Report** feature that generates a downloadable, glossy PDF summary suitable for C-level audiences.
+
+### Accessing the feature
+
+Click **Executive Report** in the top navigation bar (or the sidebar). You will be taken to `/reports`.
+
+### Selecting a time period
+
+Choose from quick presets (Last 7 days, Last 30 days, Last 90 days, Last quarter, Last year, Month-to-date, Year-to-date) or enter a custom start/end date. The date range is validated before the PDF is generated.
+
+### What the PDF contains
+
+1. **Cover page** — Report title, selected period, and generation timestamp.
+2. **Executive summary** — An auto-generated narrative paragraph highlighting the key findings.
+3. **High-level KPIs** — Total unique VMRs, total meetings, total participant sessions, and total meeting hours.
+4. **Peak concurrent participants chart** — Area/line chart over the selected period with the peak value annotated.
+5. **Top 10 most used VMRs** — Sorted table showing VMR name, number of calls, total call duration, and participant count.
+6. **Top 10 most active participants** — Sorted table showing participant name/alias, number of meetings joined, and total time in calls.
+7. **Call quality overview** — Quality distribution (Good / OK / Bad / Terrible), average packet loss, and average jitter across all media streams for the period.
+
+### Downloading
+
+Click **Generate & Download PDF**. The browser will download a file named `executive-report-YYYYMMDD-YYYYMMDD.pdf`.
+
+### Technical details
+
+| Item | Detail |
+|------|--------|
+| API route | `GET /api/reports/pdf?start=YYYY-MM-DD&end=YYYY-MM-DD` |
+| Runtime | Node.js (`export const runtime = 'nodejs'`) |
+| PDF library | `@react-pdf/renderer` v4 |
+| Data module | `src/lib/reports/data.ts` — shared data-access helpers |
+| PDF template | `src/lib/reports/pdf-document.tsx` — React-PDF document component |
+| UI page | `src/app/reports/page.tsx` |
+
+No additional environment variables are required. The feature uses the same Prisma database as the rest of the dashboard.

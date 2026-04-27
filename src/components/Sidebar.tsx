@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { useTheme } from './ThemeProvider'
-import { LayoutDashboard, Video, Zap, Calendar, Activity, Settings, ScrollText, LogOut, Moon, Sun, ShieldCheck, BarChart3, Search } from 'lucide-react'
+import { LayoutDashboard, Video, Zap, Calendar, Activity, Settings, ScrollText, LogOut, Moon, Sun, ShieldCheck, BarChart3, Search, FileText } from 'lucide-react'
 
 const links = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -15,6 +15,7 @@ const links = [
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/search', label: 'Search', icon: Search },
   { href: '/logs', label: 'Logs', icon: ScrollText },
+  { href: '/reports', label: 'Executive Report', icon: FileText },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
