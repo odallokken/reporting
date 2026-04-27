@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
     const startStr = startDate.toISOString().slice(0, 10).replace(/-/g, '')
     const endStr = endDate.toISOString().slice(0, 10).replace(/-/g, '')
-    const filename = `executive-report-${startStr}-${endStr}.pdf`
+    const filename = `executive-report-${startStr}-to-${endStr}.pdf`
 
     return new Response(new Uint8Array(pdfBuffer), {
       status: 200,

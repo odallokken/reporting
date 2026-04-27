@@ -72,7 +72,7 @@ export default function ReportsPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `executive-report-${startDate.replace(/-/g, '')}-${endDate.replace(/-/g, '')}.pdf`
+      a.download = `executive-report-${startDate.replace(/-/g, '')}-to-${endDate.replace(/-/g, '')}.pdf`
       document.body.appendChild(a)
       a.click()
       a.remove()

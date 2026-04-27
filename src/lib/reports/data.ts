@@ -131,13 +131,6 @@ function peakFromIntervals(intervals: TimeInterval[]): number {
   return peak
 }
 
-function formatHours(seconds: number): string {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  if (h > 0) return `${h}h ${m}m`
-  return `${m}m`
-}
-
 function generateNarrative(data: Omit<ReportData, 'narrative'>): string {
   const { kpis, peakValue, peakDate, quality, period } = data
   const startStr = new Date(period.start).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -155,7 +148,7 @@ function generateNarrative(data: Omit<ReportData, 'narrative'>): string {
 
   const hoursStr =
     kpis.totalMeetingHours > 0
-      ? ` totalling ${formatHours(kpis.totalMeetingHours * 3600)}`
+      ? ` totalling ${kpis.totalMeetingHours.toFixed(1)} hour${kpis.totalMeetingHours !== 1 ? 's' : ''}`
       : ''
 
   const qualityStr =
