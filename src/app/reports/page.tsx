@@ -94,9 +94,6 @@ export default function ReportsPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Executive Report</h1>
         </div>
-        <p className="text-gray-500 dark:text-gray-400 mt-1 ml-14">
-          Generate a glossy, C-level PDF report summarising the most important metrics for a selected time period.
-        </p>
       </div>
 
       <div className="glass-card rounded-2xl shadow-glass p-6 mb-6">
