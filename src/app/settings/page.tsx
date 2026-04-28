@@ -1,7 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { Copy, CheckCircle, Trash2, UserPlus } from 'lucide-react'
+import { Copy, CheckCircle, Trash2, UserPlus, AlertTriangle } from 'lucide-react'
+
+const CLEAN_IMPORT_CONFIRM_TOKEN = 'DELETE_ALL_CDRS'
+const CLEAN_IMPORT_TYPED_PHRASE = 'DELETE ALL'
 
 const SETTINGS_STORAGE_KEY = 'pexip-basic-import-settings-v1'
 type BrowserCredentialStore = {
@@ -24,6 +27,14 @@ export default function SettingsPage() {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ imported?: number; skipped?: number; error?: string } | null>(null)
   const [cleaningDuplicates, setCleaningDuplicates] = useState(false)
+  const [cleanImporting, setCleanImporting] = useState(false)
+  const [cleanImportPhase, setCleanImportPhase] = useState<'deleting' | 'importing' | null>(null)
+  const [cleanImportResult, setCleanImportResult] = useState<{
+    deleted?: { qualityWindows?: number; mediaStreams?: number; participants?: number; conferences?: number }
+    imported?: number
+    skipped?: number
+    error?: string
+  } | null>(null)
   const [cleanupResult, setCleanupResult] = useState<{
     duplicateConferenceGroups?: number
     deletedConferences?: number
@@ -207,6 +218,7 @@ export default function SettingsPage() {
     setSaveStatus(null)
     setImportResult(null)
     setCleanupResult(null)
+    setCleanImportResult(null)
     try {
       const res = await fetch('/api/cdrs/import', {
         method: 'POST',
@@ -242,6 +254,64 @@ export default function SettingsPage() {
       setCleanupResult({ error: 'Network error' })
     } finally {
       setCleaningDuplicates(false)
+    }
+  }
+
+  const handleCleanImport = async () => {
+    if (!baseUrl || !hasImportFields) return
+
+    const firstWarning =
+      'CLEAN IMPORT will permanently DELETE all imported CDR data ' +
+      '(conferences, participants, media streams and quality windows) ' +
+      'and then run a fresh import from the Pexip Management Node.\n\n' +
+      'Users, settings, logs and VMR definitions are preserved.\n\n' +
+      'This cannot be undone. Continue?'
+    if (!confirm(firstWarning)) return
+
+    const typed = window.prompt(
+      `To confirm, type "${CLEAN_IMPORT_TYPED_PHRASE}" (exactly) and click OK.`,
+      '',
+    )
+    if (typed !== CLEAN_IMPORT_TYPED_PHRASE) {
+      if (typed !== null) {
+        alert('Confirmation phrase did not match. Clean import cancelled.')
+      }
+      return
+    }
+
+    setCleanImporting(true)
+    setCleanImportPhase('deleting')
+    setImportResult(null)
+    setCleanupResult(null)
+    setCleanImportResult(null)
+
+    try {
+      const res = await fetch('/api/cdrs/clean-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          baseUrl,
+          username,
+          password,
+          minDurationSeconds: excludeShortConferences ? parseInt(minDurationSeconds, 10) || 0 : 0,
+          confirm: CLEAN_IMPORT_CONFIRM_TOKEN,
+        }),
+      })
+      // From the client's perspective, once the request is in flight we are
+      // effectively in the importing phase (the wipe happens server-side first
+      // but the response only comes back when both are done).
+      setCleanImportPhase('importing')
+      const data = await res.json()
+      if (!res.ok) {
+        setCleanImportResult({ error: data?.error ?? `Request failed (HTTP ${res.status})`, deleted: data?.deleted })
+      } else {
+        setCleanImportResult(data)
+      }
+    } catch {
+      setCleanImportResult({ error: 'Network error' })
+    } finally {
+      setCleanImporting(false)
+      setCleanImportPhase(null)
     }
   }
 
@@ -381,6 +451,29 @@ export default function SettingsPage() {
                     {cleaningDuplicates ? 'Cleaning…' : 'Clean duplicates'}
                   </button>
                 </div>
+
+                <div className="mt-4 pt-4 border-t border-red-200/60 dark:border-red-500/20">
+                  <div className="flex items-start gap-2 mb-2">
+                    <AlertTriangle size={16} className="text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-red-700 dark:text-red-300">Clean import (replace all CDR data)</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        Permanently deletes <strong>all</strong> imported conferences, participants, media streams and quality windows, then runs a fresh import using the credentials above. Users, settings, logs and VMR records are preserved (the import may refresh VMR <code>lastUsedAt</code> timestamps and create entries for VMR names it sees in the history). <strong>This cannot be undone.</strong>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleCleanImport}
+                    disabled={cleanImporting || !baseUrl || !hasImportFields}
+                    className="mt-2 py-2.5 px-4 border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 rounded-xl font-medium text-sm hover:bg-red-100 dark:hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {cleanImporting
+                      ? cleanImportPhase === 'deleting'
+                        ? 'Deleting existing data…'
+                        : 'Importing…'
+                      : 'Clean import'}
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -414,6 +507,25 @@ export default function SettingsPage() {
               ) : (
                 <p>
                   Cleanup complete: {cleanupResult.duplicateConferenceGroups ?? 0} duplicate conference groups, {cleanupResult.deletedConferences ?? 0} conferences deleted, {cleanupResult.mergedParticipants ?? 0} participants merged, {cleanupResult.movedParticipants ?? 0} participants moved.
+                </p>
+              )}
+            </div>
+          )}
+
+          {cleanImportResult && (
+            <div className={`mt-4 p-4 rounded-lg text-sm ${cleanImportResult.error ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
+              {cleanImportResult.error ? (
+                <>
+                  <p>Clean import error: {cleanImportResult.error}</p>
+                  {cleanImportResult.deleted && (
+                    <p className="mt-1 text-xs">
+                      Existing data was deleted before the failure: {cleanImportResult.deleted.conferences ?? 0} conferences, {cleanImportResult.deleted.participants ?? 0} participants, {cleanImportResult.deleted.mediaStreams ?? 0} media streams, {cleanImportResult.deleted.qualityWindows ?? 0} quality windows.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p>
+                  Clean import complete: deleted {cleanImportResult.deleted?.conferences ?? 0} conferences, {cleanImportResult.deleted?.participants ?? 0} participants, {cleanImportResult.deleted?.mediaStreams ?? 0} media streams, {cleanImportResult.deleted?.qualityWindows ?? 0} quality windows. Imported {cleanImportResult.imported ?? 0}, skipped {cleanImportResult.skipped ?? 0}.
                 </p>
               )}
             </div>
