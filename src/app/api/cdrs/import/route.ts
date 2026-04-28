@@ -19,6 +19,21 @@ interface PexipCDRParticipant {
   call_uuid?: string
   connect_time?: string
   disconnect_time?: string
+  protocol?: string
+  vendor?: string
+  call_direction?: string
+  encryption?: string
+  source_alias?: string
+  destination_alias?: string
+  remote_address?: string
+  media_node?: string
+  signalling_node?: string
+  disconnect_reason?: string
+  role?: string
+  rx_bandwidth?: number
+  tx_bandwidth?: number
+  service_tag?: string
+  conversation_id?: string
 }
 
 import * as https from 'https'
@@ -264,6 +279,20 @@ export async function POST(request: NextRequest) {
                       callUuid: p.call_uuid ?? null,
                       joinTime: p.connect_time ? new Date(p.connect_time) : conference.startTime,
                       leaveTime: p.disconnect_time ? new Date(p.disconnect_time) : conference.endTime,
+                      protocol: p.protocol ?? null,
+                      vendor: p.vendor ?? null,
+                      callDirection: p.call_direction ?? null,
+                      encryption: p.encryption ?? null,
+                      sourceAlias: p.source_alias ?? null,
+                      destinationAlias: p.destination_alias ?? null,
+                      remoteAddress: p.remote_address ?? null,
+                      mediaNode: p.media_node ?? null,
+                      signallingNode: p.signalling_node ?? null,
+                      disconnectReason: p.disconnect_reason ?? null,
+                      role: p.role ?? null,
+                      rxBandwidth: typeof p.rx_bandwidth === 'number' ? p.rx_bandwidth : null,
+                      txBandwidth: typeof p.tx_bandwidth === 'number' ? p.tx_bandwidth : null,
+                      identity: p.service_tag ?? p.conversation_id ?? null,
                     }
                   )
                 }
@@ -365,6 +394,20 @@ async function upsertHistoricalParticipant(
     callUuid: string | null
     joinTime: Date
     leaveTime: Date | null
+    protocol?: string | null
+    vendor?: string | null
+    callDirection?: string | null
+    encryption?: string | null
+    sourceAlias?: string | null
+    destinationAlias?: string | null
+    remoteAddress?: string | null
+    mediaNode?: string | null
+    signallingNode?: string | null
+    disconnectReason?: string | null
+    role?: string | null
+    rxBandwidth?: number | null
+    txBandwidth?: number | null
+    identity?: string | null
   },
 ) {
   const duration = participant.leaveTime
@@ -392,6 +435,20 @@ async function upsertHistoricalParticipant(
         joinTime: participant.joinTime,
         leaveTime: participant.leaveTime,
         duration,
+        protocol: participant.protocol ?? null,
+        vendor: participant.vendor ?? null,
+        callDirection: participant.callDirection ?? null,
+        encryption: participant.encryption ?? null,
+        sourceAlias: participant.sourceAlias ?? null,
+        destinationAlias: participant.destinationAlias ?? null,
+        remoteAddress: participant.remoteAddress ?? null,
+        mediaNode: participant.mediaNode ?? null,
+        signallingNode: participant.signallingNode ?? null,
+        disconnectReason: participant.disconnectReason ?? null,
+        role: participant.role ?? null,
+        rxBandwidth: participant.rxBandwidth ?? null,
+        txBandwidth: participant.txBandwidth ?? null,
+        identity: participant.identity ?? null,
       },
     })
   }
@@ -402,6 +459,20 @@ async function upsertHistoricalParticipant(
     joinTime?: Date
     leaveTime?: Date | null
     duration?: number | null
+    protocol?: string | null
+    vendor?: string | null
+    callDirection?: string | null
+    encryption?: string | null
+    sourceAlias?: string | null
+    destinationAlias?: string | null
+    remoteAddress?: string | null
+    mediaNode?: string | null
+    signallingNode?: string | null
+    disconnectReason?: string | null
+    role?: string | null
+    rxBandwidth?: number | null
+    txBandwidth?: number | null
+    identity?: string | null
   } = {}
 
   if (existingParticipant.conferenceId !== conferenceId) {
@@ -420,6 +491,43 @@ async function upsertHistoricalParticipant(
     updateData.leaveTime = participant.leaveTime
   }
   if (duration !== null && duration !== existingParticipant.duration) updateData.duration = duration
+
+  // Backfill descriptive fields from history when they are missing on the existing
+  // record. We only overwrite when the existing value is null/empty so that more
+  // detailed data already captured by the realtime events webhook is preserved.
+  const backfillString = (
+    incoming: string | null | undefined,
+    existing: string | null,
+    key: keyof typeof updateData,
+  ) => {
+    if (incoming && (existing === null || existing === '')) {
+      ;(updateData as Record<string, unknown>)[key as string] = incoming
+    }
+  }
+  const backfillNumber = (
+    incoming: number | null | undefined,
+    existing: number | null,
+    key: keyof typeof updateData,
+  ) => {
+    if (typeof incoming === 'number' && existing === null) {
+      ;(updateData as Record<string, unknown>)[key as string] = incoming
+    }
+  }
+
+  backfillString(participant.protocol, existingParticipant.protocol, 'protocol')
+  backfillString(participant.vendor, existingParticipant.vendor, 'vendor')
+  backfillString(participant.callDirection, existingParticipant.callDirection, 'callDirection')
+  backfillString(participant.encryption, existingParticipant.encryption, 'encryption')
+  backfillString(participant.sourceAlias, existingParticipant.sourceAlias, 'sourceAlias')
+  backfillString(participant.destinationAlias, existingParticipant.destinationAlias, 'destinationAlias')
+  backfillString(participant.remoteAddress, existingParticipant.remoteAddress, 'remoteAddress')
+  backfillString(participant.mediaNode, existingParticipant.mediaNode, 'mediaNode')
+  backfillString(participant.signallingNode, existingParticipant.signallingNode, 'signallingNode')
+  backfillString(participant.disconnectReason, existingParticipant.disconnectReason, 'disconnectReason')
+  backfillString(participant.role, existingParticipant.role, 'role')
+  backfillString(participant.identity, existingParticipant.identity, 'identity')
+  backfillNumber(participant.rxBandwidth, existingParticipant.rxBandwidth, 'rxBandwidth')
+  backfillNumber(participant.txBandwidth, existingParticipant.txBandwidth, 'txBandwidth')
 
   if (Object.keys(updateData).length === 0) {
     return existingParticipant
