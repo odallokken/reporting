@@ -388,6 +388,24 @@ All variables are configured in the `.env` file at the root of the project.
 | `DATABASE_URL` | `file:./dev.db` | Path to the SQLite database file |
 | `AUTH_SECRET` | Auto-generated | Secret used to encrypt session tokens. Auto-generated and persisted on first start if not set. |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` | Base URL of the app (used by server components) |
+| `NEXT_PUBLIC_GIT_SHA` | *(not set)* | Short commit SHA displayed on the About page. Set this at build time (see below). |
+
+#### Setting the commit SHA at build time
+
+The About page displays the current commit SHA when `NEXT_PUBLIC_GIT_SHA` is set. Inject it during `docker compose up --build` or a CI build:
+
+```bash
+# Local / manual build
+NEXT_PUBLIC_GIT_SHA=$(git rev-parse --short HEAD) docker compose up -d --build
+
+# GitHub Actions example
+- name: Build
+  run: docker compose up -d --build
+  env:
+    NEXT_PUBLIC_GIT_SHA: ${{ github.sha }}
+```
+
+The value is baked into the static bundle at build time and shown on the **About** page.
 
 ### API Endpoints
 
