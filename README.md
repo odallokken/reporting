@@ -400,9 +400,9 @@ NEXT_PUBLIC_GIT_SHA=$(git rev-parse --short HEAD) docker compose up -d --build
 
 # GitHub Actions example
 - name: Build
-  run: docker compose up -d --build
-  env:
-    NEXT_PUBLIC_GIT_SHA: ${{ github.sha }}
+  run: |
+    export NEXT_PUBLIC_GIT_SHA="${GITHUB_SHA::7}"
+    docker compose up -d --build
 ```
 
 The value is baked into the static bundle at build time and shown on the **About** page.
