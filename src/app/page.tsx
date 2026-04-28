@@ -118,7 +118,7 @@ export default function DashboardPage() {
       <div className="glass-card rounded-2xl shadow-glass p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
-          <Link href="/logs" className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 hover:underline font-medium">
+          <Link href="/realtime" className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 hover:underline font-medium">
             View all →
           </Link>
         </div>
