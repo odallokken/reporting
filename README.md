@@ -490,7 +490,7 @@ Pexip Infinity pushes real-time events to the portal via the **Event Sink** mech
 
 ## Executive Report (PDF Export)
 
-The dashboard includes a built-in **Executive Report** feature that generates a downloadable, glossy PDF summary suitable for C-level audiences.
+The dashboard includes a built-in **Executive Report** feature that generates a downloadable PDF summary
 
 ### Accessing the feature
 
