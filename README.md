@@ -284,6 +284,8 @@ This pulls in conference records that were created before the dashboard was inst
 4. Click **Save credentials** so the values are remembered in your browser.
 5. Click **Import** to pull in the historical records.
 
+> **Clean import (admin only).** If you need to reset the historical data — for example after testing or to recover from a corrupted import — admins will see a **Clean import** button under the import form. This permanently deletes all imported conferences, participants, media streams and quality windows and then runs a fresh import. Users, settings, logs and VMR definitions are preserved. The action requires two confirmations (a warning dialog and typing `DELETE ALL`) and **cannot be undone**.
+
 You can use both options together — the CDR import for historical data, and the event sink for ongoing live activity.
 
 ---
@@ -419,6 +421,7 @@ The value is baked into the static bundle at build time and shown on the **About
 | `GET` | `/api/conferences` | List conferences (filter by VMR/date) |
 | `GET` | `/api/realtime` | Recent participant events |
 | `POST` | `/api/cdrs/import` | Import CDRs from Pexip Management API |
+| `POST` | `/api/cdrs/clean-import` | **Admin only.** Wipe all imported CDR data and re-import from the Pexip Management API. Requires `confirm: "DELETE_ALL_CDRS"` in the JSON body. |
 
 ### Pexip Infinity API Communications
 
